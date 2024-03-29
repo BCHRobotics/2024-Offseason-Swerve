@@ -364,12 +364,14 @@ public class Mechanism extends SubsystemBase{
      * @return
      */
     public Command stopMechanism() {
+        noteLights();
+
         return runOnce(() -> {
           this.setBeltSpeed(0);
           this.setSourceSpeed(0);
           this.setAmpSpeed(0);
           this.setWheelState(false);
-        }).andThen(noteLights());
+        });
     }
 
     /**
@@ -436,12 +438,12 @@ public class Mechanism extends SubsystemBase{
      * A command for either turning the lights
      * off or green depending on if a note is loaded
      */
-    public Command noteLights() {
+    public void noteLights() {
         if (this.checkState(Phase.NONE)) {
-            return Commands.runOnce(() -> this.powerLEDs(LEDColor.OFF));
+            this.powerLEDs(LEDColor.OFF);
         }
         else {
-            return Commands.runOnce(() -> this.powerLEDs(LEDColor.GREEN));
+            this.powerLEDs(LEDColor.GREEN);
         }
     }
 
