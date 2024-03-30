@@ -40,6 +40,12 @@
           "data": {
             "name": "ELEVATOR LOW"
           }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Amp-Leave"
+          }
         }
       ]
     }

@@ -169,8 +169,8 @@ public final class Constants {
     public enum CameraMode {
       NONE(new double[]{0, 0}, 0, 0), // values aren't used here
       NOTE(new double[]{0, 0}, 0, 0), // values aren't used here
-      AMP(new double[]{0.685, 0}, -90, -90),
-      SPEAKER(new double[]{1.98, 0.15}, 0, 180);
+      AMP(new double[]{0.77, 0}, -90, -90),
+      SPEAKER(new double[]{2.02, 0}, 0, 180);
 
       private final double[] offsets;
       private final double redHeading;
@@ -220,9 +220,9 @@ public final class Constants {
     public static final double kVisionTurningLimit = 0.8;  //0.4
 
     // How close to an apriltag the robot has to be before stopping (meters)
-    public static final double kTagDistanceThreshold = 0.02;
+    public static final double kTagDistanceThreshold = 0.03;
     // The amount of rotational error alowed (degrees)
-    public static final double kTagRotationThreshold = 8;
+    public static final double kTagRotationThreshold = 7;
     // How far away the bot is before it starts slowing down (farther than this it goes full speed as defined by kVisionSpeedLimit)
     public static final double kTagSlowdownDistance = 0.8;
 

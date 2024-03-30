@@ -87,7 +87,7 @@ public class Elevator extends SubsystemBase {
         m_controller.setTolerance(0.005);
 
         m_leftEncoder.setPosition(0);
-        m_controller.setGoal(0);
+        m_controller.setGoal(-0.02);
     }
 
     /**
