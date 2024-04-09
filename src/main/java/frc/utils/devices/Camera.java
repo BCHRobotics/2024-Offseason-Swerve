@@ -14,37 +14,30 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Pose2d;
 
 public class Camera extends PhotonCamera {
-
-    private double rotationSpeed;
-    private PIDController alignController;
-
     /**
      * Constructor for the Camera class
      * @param name the name of the camera
      */
     public Camera(String name) {
         super(name);
-        alignController = new PIDController(VisionConstants.kNoteP, VisionConstants.kNoteI, VisionConstants.kNoteD);
     }
 
     PhotonPipelineResult result = this.getLatestResult();
-    
+
     /**
-     * Gets the desired rotation speed in order to align with the target
+     * Gets the angle error to the note (how misaligned is the robot compared to the note?)
      * @return the desired rotation speed
      */
-    public double getRotationSpeed(){
-        // Make sure the camera has a target, else it will return null
-        if(result.hasTargets()){
-            double currentYaw = result.getBestTarget().getYaw();
+    public double getAngleError() {
+        double yawError = 0;
 
-            rotationSpeed = alignController.calculate(currentYaw);
-            
-        } else{
-            rotationSpeed = 0;
+        // Make sure the camera has a target
+        if(result.hasTargets()){
+            // Use the built-in getYaw() function to get the yaw angle of the target
+            yawError = result.getBestTarget().getYaw();
         }
 
-        return rotationSpeed;
+        return yawError;
     }
 
     /**

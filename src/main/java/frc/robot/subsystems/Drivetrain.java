@@ -101,6 +101,8 @@ public class Drivetrain extends SubsystemBase {
   private boolean isHeadingLocked;
   private PIDController headingController;
 
+  private PIDController noteAlignmenController;
+
   // Odometry class for tracking robot pose
   SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
       DriveConstants.kDriveKinematics,
@@ -133,6 +135,7 @@ public class Drivetrain extends SubsystemBase {
     cameraMode = CameraMode.NOTE;
 
     headingController = new PIDController(0.015, 0, 0.00144);
+    noteAlignmenController = new PIDController(VisionConstants.kNoteP, VisionConstants.kNoteI, VisionConstants.kNoteD);
   }
 
   public void lockHeading(double angle) {
@@ -192,18 +195,6 @@ public class Drivetrain extends SubsystemBase {
   }
 
   /**
-   * A function for driving to the targeted note, runs periodically 
-   * 
-   * (ONLY USED DURING AUTO)
-   */
-  public void driveToNote() {
-    // Note alignment code
-      if (isAlignmentActive && cameraMode == CameraMode.NOTE) {
-        drive(VisionConstants.kVisionSpeedLimit, 0, m_noteCamera.getRotationSpeed(), false, true);
-      }
-  }
-
-  /**
    * The function to be called periodically in order to drive the robot,
    * either with vision, heading lock, or manually
    * @param xSpeed the x axis commanded speed [-1 -> 1]
@@ -215,30 +206,35 @@ public class Drivetrain extends SubsystemBase {
    */
   public void driveCommand(double xSpeed, double ySpeed, double rotSpeed, boolean fieldRelative, boolean rateLimit, boolean noteLoaded) {
     if (!isAlignmentActive) {
+      // If there is an attempted rotation on the joystick, unlock the heading
       if (Math.abs(rotSpeed) > 0.04) {
         isHeadingLocked = false;
       }
 
+      // If the heading is locked, turn the bot to the desired heading with a PID controller
       if (isHeadingLocked) {
         drive(xSpeed, ySpeed, headingController.calculate(getHeading(), lockHeadingAngle), fieldRelative, rateLimit);
       }
-      else {
+      else { // If not just use the joystick inputs
         drive(xSpeed, ySpeed, rotSpeed, fieldRelative, rateLimit);
       }
     }
-    else {
+    else { // If vision is enabled
+      // If the vision mode is set to look for notes
       if (cameraMode == CameraMode.NOTE) {
-        // Align to the note while driving normally (no field relative)
-        drive(Math.sqrt(Math.pow(ySpeed, 2) + Math.pow(xSpeed, 2)), 0, rotSpeed + m_noteCamera.getRotationSpeed(), false, rateLimit);
-  
+        // Align heading to the note using vision while driving forwards (only forwards)
+        drive(Math.sqrt(Math.pow(ySpeed, 2) + Math.pow(xSpeed, 2)), 0, rotSpeed + noteAlignmenController.calculate(m_noteCamera.getAngleError()), false, rateLimit);
+        
+        // When there is a note loaded, cancel the alignment command
         if (noteLoaded) {
           cancelAlign();
         }
       }
 
+      // Retrieve the target pose of either the amp or speaker depending on camera mode
       Pose2d targetPose = cameraMode == CameraMode.AMP ? ampTargetPose : speakerTargetPose;
       if ((cameraMode == CameraMode.AMP || cameraMode == CameraMode.SPEAKER) && targetPose != null) {
-        // Apriltag alignment code for amp
+        // Use alignWithTagExact() to construct a drive 
         Transform2d alignCommand = VisionUtils.alignWithTagExact(targetPose, getPose(), 
                                   VisionUtils.tagToField(new Transform2d(cameraMode.getOffsets()[0], 
                                                                         cameraMode.getOffsets()[1], new Rotation2d(0)), 
@@ -273,6 +269,17 @@ public class Drivetrain extends SubsystemBase {
    */
   public Pose2d getPose() {
     return m_odometry.getPoseMeters();
+  }
+
+  /**
+   * Lying to pathplanner
+   */
+  public Pose2d getAssistedPose() {
+    Transform2d robotNoteOffset = new Transform2d(0, m_noteCamera.getAngleError(), new Rotation2d());
+    Transform2d fieldNoteOffset = VisionUtils.tagToField(robotNoteOffset, getHeading());
+    // Using tagToField() here because the note is on the front of the bot (I am aware the functions need renaming)
+
+    return m_odometry.getPoseMeters().plus(fieldNoteOffset);
   }
 
   /**
@@ -506,7 +513,7 @@ public class Drivetrain extends SubsystemBase {
    */
   public void initializeAuto() {
     AutoBuilder.configureHolonomic(
-          this::getPose, 
+          this::getAssistedPose, 
           this::resetOdometry, 
           this::getChassisSpeeds, 
           this::setChassisSpeeds,

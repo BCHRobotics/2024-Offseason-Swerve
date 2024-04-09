@@ -98,15 +98,6 @@ public class RobotContainer {
      * (used during autos)
      */
     public void configureNamedCommands() {
-        // Note alignment command
-        NamedCommands.registerCommand("ALIGN NOTE", new RunCommand(
-            () -> m_robotDrive.driveToNote()).until( // Run the 'drive to note' function
-                () -> m_mechanism.checkState(Phase.GROUND_PICKUP)).beforeStarting( // Stop when checkAlignment is true, i.e the robot is done aligning
-                    new InstantCommand(
-                        () -> m_robotDrive.setVisionMode(CameraMode.NOTE))).alongWith(
-                            this.m_elevator.moveToPositionCommand(ElevatorPositions.INTAKE)).alongWith(
-                                this.m_mechanism.groundIntakeAuto(12)).andThen(new InstantCommand(() -> m_robotDrive.cancelAlign()))); // Set alignmode to true before starting, and set isAligned to false
-
         // A command for canceling the current align command
         NamedCommands.registerCommand("CANCEL ALIGN", new InstantCommand(() -> m_robotDrive.cancelAlign()));
 
