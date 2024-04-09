@@ -1,0 +1,61 @@
+{
+  "version": 1.0,
+  "startingPose": {
+    "position": {
+      "x": 1.4356760304969556,
+      "y": 7.30256890442522
+    },
+    "rotation": -90.0
+  },
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Start-Amp_DS3"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ELEVATOR HIGH"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.7
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AMP SCORE"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ELEVATOR LOW"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Amp-Leave"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Leave-MiddleNote"
+          }
+        }
+      ]
+    }
+  },
+  "folder": "Driver Station 3",
+  "choreoAuto": false
+}

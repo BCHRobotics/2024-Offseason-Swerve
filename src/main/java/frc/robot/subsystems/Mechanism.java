@@ -162,26 +162,18 @@ public class Mechanism extends SubsystemBase{
         return this.startEnd(
             () -> {
                 this.setBeltSpeed(-speed);
-                this.setSourceSpeed(speed);
-                this.setAmpSpeed(speed);
             },
 
             () -> {
                 this.setBeltSpeed(-speed * 0.75);
-                this.setSourceSpeed(speed * 0.75);
-                this.setAmpSpeed(speed * 0.75);
             })
             .until(() -> this.checkState(Phase.GROUND_PICKUP))
             .andThen(startEnd(
                 () -> {
                 this.setBeltSpeed(-speed * 0.75);
-                this.setSourceSpeed(speed * 0.75);
-                this.setAmpSpeed(speed * 0.75);
             },
             () -> {
                 this.setBeltSpeed(0.0);
-                this.setSourceSpeed(0.0);
-                this.setAmpSpeed(0.0);
             }).until(() -> this.checkState(Phase.LOADED))
         .andThen(confirmIntake()));
     }
@@ -193,26 +185,18 @@ public class Mechanism extends SubsystemBase{
         return this.startEnd(
             () -> {
                 this.setBeltSpeed(-speed);
-                this.setSourceSpeed(speed * 0.25);
-                this.setAmpSpeed(speed * 0.25);
             },
 
             () -> {
                 this.setBeltSpeed(-speed * 0.75);
-                this.setSourceSpeed(speed * 0.75 * 0.25);
-                this.setAmpSpeed(speed * 0.75 * 0.25);
             })
             .until(() -> this.checkState(Phase.GROUND_PICKUP))
             .andThen(startEnd(
                 () -> {
                 this.setBeltSpeed(-speed * 0.75);
-                this.setSourceSpeed(speed * 0.75 * 0.25);
-                this.setAmpSpeed(speed * 0.75 * 0.25);
             },
             () -> {
                 this.setBeltSpeed(0.0);
-                this.setSourceSpeed(0.0);
-                this.setAmpSpeed(0.0);
             }).until(() -> this.checkState(Phase.LOADED))
         );
     }
@@ -270,6 +254,7 @@ public class Mechanism extends SubsystemBase{
                 this.setSourceSpeed(-speed);
                 this.setAmpSpeed(-speed);
             })
+            .until(() -> this.checkState(Phase.NONE))
             .andThen(lightsOff())
             .andThen(this.m_elevator.moveToPositionCommand(ElevatorPositions.INTAKE));
     }
@@ -364,13 +349,12 @@ public class Mechanism extends SubsystemBase{
      * @return
      */
     public Command stopMechanism() {
-        noteLights();
-
         return runOnce(() -> {
           this.setBeltSpeed(0);
           this.setSourceSpeed(0);
           this.setAmpSpeed(0);
           this.setWheelState(false);
+          this.noteLights();
         });
     }
 

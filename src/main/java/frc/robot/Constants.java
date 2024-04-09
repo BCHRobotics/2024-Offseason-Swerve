@@ -169,8 +169,8 @@ public final class Constants {
     public enum CameraMode {
       NONE(new double[]{0, 0}, 0, 0), // values aren't used here
       NOTE(new double[]{0, 0}, 0, 0), // values aren't used here
-      AMP(new double[]{0.77, 0}, -90, -90),
-      SPEAKER(new double[]{2.02, 0}, 0, 180);
+      AMP(new double[]{0.61, 0}, -90, -90),
+      SPEAKER(new double[]{2.04, 0}, 0, 180);
 
       private final double[] offsets;
       private final double redHeading;
