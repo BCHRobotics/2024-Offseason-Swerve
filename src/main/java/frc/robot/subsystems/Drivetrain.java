@@ -21,6 +21,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
@@ -103,6 +104,9 @@ public class Drivetrain extends SubsystemBase {
 
   private PIDController noteAlignmenController;
 
+  private boolean isVisionAuto;
+  private Rotation2d tagHeading;
+
   // Odometry class for tracking robot pose
   SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
       DriveConstants.kDriveKinematics,
@@ -166,6 +170,10 @@ public class Drivetrain extends SubsystemBase {
             m_rearRight.getPosition()
         });
 
+    if (m_tagCamera.hasTargetOfId(4)) {
+      tagHeading = Rotation2d.fromDegrees(m_tagCamera.getTagAngleError(4)).plus(getPose().getRotation());
+    }
+
     // Print debug values to smartDashboard
     this.printToDashboard();
 
@@ -206,6 +214,9 @@ public class Drivetrain extends SubsystemBase {
    */
   public void driveCommand(double xSpeed, double ySpeed, double rotSpeed, boolean fieldRelative, boolean rateLimit, boolean noteLoaded) {
     if (!isAlignmentActive) {
+      // Nullify this because as soon as vision stops and the driver moves the bot this value will be wrong
+      tagHeading = null;
+
       // If there is an attempted rotation on the joystick, unlock the heading
       if (Math.abs(rotSpeed) > 0.04) {
         isHeadingLocked = false;
@@ -235,10 +246,9 @@ public class Drivetrain extends SubsystemBase {
       Pose2d targetPose = cameraMode == CameraMode.AMP ? ampTargetPose : speakerTargetPose;
       if ((cameraMode == CameraMode.AMP || cameraMode == CameraMode.SPEAKER) && targetPose != null) {
         // Use alignWithTagExact() to construct a drive 
-        Transform2d alignCommand = VisionUtils.alignWithTagExact(targetPose, getPose(), 
-                                  VisionUtils.tagToField(new Transform2d(cameraMode.getOffsets()[0], 
-                                                                        cameraMode.getOffsets()[1], new Rotation2d(0)), 
-                                                        cameraMode.getHeading(isRedAlliance)));
+        Transform2d alignCommand = VisionUtils.alignWithTagRadial(targetPose, getPose(), 
+                                                                  cameraMode.getOffsets()[0], 
+                                                                  tagHeading.minus(getPose().getRotation()).getDegrees());
 
         if (alignCommand == null) {
           isAlignmentSuccess = true;
@@ -275,11 +285,23 @@ public class Drivetrain extends SubsystemBase {
    * Lying to pathplanner
    */
   public Pose2d getAssistedPose() {
-    Transform2d robotNoteOffset = new Transform2d(0, m_noteCamera.getAngleError(), new Rotation2d());
+    // Here we are interpreting the angle from the robot to the note as a distance (technically wrong but it works out anyways)
+    // We are using this distance to construct a robot-relative offset to the note (again, this is wrong but it works)
+    Transform2d robotNoteOffset = new Transform2d(0, -m_noteCamera.getAngleError() * 0.07, new Rotation2d());
+    // Convert to field relative coords using rotation matrix
     Transform2d fieldNoteOffset = VisionUtils.tagToField(robotNoteOffset, getHeading());
     // Using tagToField() here because the note is on the front of the bot (I am aware the functions need renaming)
 
-    return m_odometry.getPoseMeters().plus(fieldNoteOffset);
+    if (isVisionAuto) {
+      return m_odometry.getPoseMeters().plus(fieldNoteOffset);
+    }
+    else {
+      return m_odometry.getPoseMeters();
+    }
+  }
+
+  public void autoVision(boolean input) {
+    isVisionAuto = input;
   }
 
   /**
@@ -603,5 +625,7 @@ public class Drivetrain extends SubsystemBase {
     // Are the cameras connected?
     SmartDashboard.putBoolean("Note Cam Connected", m_noteCamera.isConnected());
     SmartDashboard.putBoolean("Tag Cam Connected", m_tagCamera.isConnected());
+
+    SmartDashboard.putNumber("Error", tagError);
   }
 }

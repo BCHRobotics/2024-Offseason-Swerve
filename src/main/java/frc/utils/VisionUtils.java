@@ -134,10 +134,11 @@ public class VisionUtils {
      * defined by a given apriltag (USED FOR THE SPEAKER)
      * @param targetPose the pose of the apriltag
      * @param robotPose the pose of the robot
+     * @param desiredRadius how far you want to be from the target
+     * @param tagAngleError the angle of the tag (0 is straight ahead)
      * @return
      */
-    //TODO: finish this function
-    public static Transform2d alignWithTagRadial(Pose2d targetPose, Pose2d robotPose, double desiredRadius) {
+    public static Transform2d alignWithTagRadial(Pose2d targetPose, Pose2d robotPose, double desiredRadius, double tagAngleError) {
         // Apriltag alignment code
         if (targetPose != null) {
           double distToTag = robotPose.getTranslation().getDistance(targetPose.getTranslation());
@@ -146,9 +147,8 @@ public class VisionUtils {
           double xCommand = (distToTag > desiredRadius) ? (targetPose.getX() - robotPose.getX()) : (targetPose.getX() - robotPose.getX()) * -1;
           double yCommand = (distToTag > desiredRadius) ? (targetPose.getY() - robotPose.getY()) : (targetPose.getY() - robotPose.getY()) * -1;
           
-          // TODO: test the rotation here
-          // Commanded rotation based on direction vector
-          double rotCommand = Math.atan((targetPose.getY() - robotPose.getY()) / (targetPose.getX() - robotPose.getX()));
+          // Commanded rotation based on the tag angle
+          double rotCommand = -tagAngleError;
   
           // x axis command
           xCommand = (xCommand < 0) ? 
@@ -188,7 +188,7 @@ public class VisionUtils {
           }
   
           // TODO: Maybe get rid of the * 0.3?
-          return new Transform2d(xCommand, yCommand, Rotation2d.fromDegrees(rotCommand * 0.3));
+          return new Transform2d(0, 0, Rotation2d.fromDegrees(rotCommand * 0.3));
         }
         else {
           return new Transform2d(0, 0, Rotation2d.fromDegrees(0));

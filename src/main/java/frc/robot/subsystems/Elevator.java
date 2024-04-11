@@ -81,9 +81,6 @@ public class Elevator extends SubsystemBase {
         this.m_leftMotor.enableVoltageCompensation(12);
         this.m_rightMotor.enableVoltageCompensation(12);
 
-        this.m_leftMotor.burnFlash();
-        this.m_rightMotor.burnFlash();
-
         this.m_leftEncoder.setPositionConversionFactor(ElevatorConstants.kElevatorPositionConversionFactor);
         this.m_leftEncoder.setVelocityConversionFactor(ElevatorConstants.kElevatorPositionConversionFactor);
 

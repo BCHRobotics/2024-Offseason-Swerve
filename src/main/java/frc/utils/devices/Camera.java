@@ -41,6 +41,24 @@ public class Camera extends PhotonCamera {
     }
 
     /**
+     * Gets the angle error to the note (how misaligned is the robot compared to the note?)
+     * @return the desired rotation speed
+     */
+    public double getTagAngleError(int desiredTagId) {
+        double yawError = 0;
+
+        // Make sure the camera has a target
+        if(result.hasTargets()){
+            if (hasTargetOfId(desiredTagId)) {
+                // Use the built-in getYaw() function to get the yaw angle of the target
+                yawError = findTagAngleWithId(desiredTagId);
+            }
+        }
+
+        return yawError;
+    }
+
+    /**
      * Gets the result of the camera
      * @return the result of the camera
      */
@@ -69,6 +87,22 @@ public class Camera extends PhotonCamera {
         }
 
         return null;
+    }
+
+    /**
+     * Finds the offset of a target with a specific id
+     * @return The offset of the specified target
+     */
+    public double findTagAngleWithId(int desiredId) {
+        List<PhotonTrackedTarget> targetData = result.getTargets();
+        
+        for (PhotonTrackedTarget currentTarget : targetData) {
+            if (currentTarget.getFiducialId() == desiredId) {
+                return currentTarget.getYaw();
+            }
+        }
+
+        return 0;
     }
 
     /**

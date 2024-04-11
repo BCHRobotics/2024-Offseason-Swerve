@@ -15,8 +15,8 @@
     "Driver Station 2",
     "Driver Station 3"
   ],
-  "defaultMaxVel": 3.0,
-  "defaultMaxAccel": 3.5,
+  "defaultMaxVel": 2.0,
+  "defaultMaxAccel": 2.0,
   "defaultMaxAngVel": 540.0,
   "defaultMaxAngAccel": 720.0,
   "maxModuleSpeed": 4.1

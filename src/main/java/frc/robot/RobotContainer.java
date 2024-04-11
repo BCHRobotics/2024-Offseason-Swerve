@@ -98,8 +98,8 @@ public class RobotContainer {
      * (used during autos)
      */
     public void configureNamedCommands() {
-        // A command for canceling the current align command
-        NamedCommands.registerCommand("CANCEL ALIGN", new InstantCommand(() -> m_robotDrive.cancelAlign()));
+        NamedCommands.registerCommand("ALIGN NOTE", new InstantCommand(() -> m_robotDrive.autoVision(true)));
+        NamedCommands.registerCommand("CANCEL ALIGN", new InstantCommand(() -> m_robotDrive.autoVision(false)));
 
         NamedCommands.registerCommand("INTAKE", m_mechanism.groundIntakeAuto(12));
         NamedCommands.registerCommand("RELEASE", m_mechanism.groundReleaseAuto(12));

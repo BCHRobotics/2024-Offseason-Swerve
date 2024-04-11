@@ -12,6 +12,12 @@
     "data": {
       "commands": [
         {
+          "type": "named",
+          "data": {
+            "name": "CANCEL ALIGN"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "SpeakerAuto_A1"
@@ -24,9 +30,21 @@
           }
         },
         {
+          "type": "named",
+          "data": {
+            "name": "ALIGN NOTE"
+          }
+        },
+        {
           "type": "path",
           "data": {
             "pathName": "SpeakerAuto_A2"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "CANCEL ALIGN"
           }
         },
         {

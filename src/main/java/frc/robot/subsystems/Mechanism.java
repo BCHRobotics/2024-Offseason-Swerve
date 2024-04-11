@@ -73,11 +73,6 @@ public class Mechanism extends SubsystemBase{
         this.m_sourceMotor.enableVoltageCompensation(12);
         this.m_ampMotor.enableVoltageCompensation(12);
 
-        this.m_bottomBeltMotor.burnFlash();
-        this.m_topBeltMotor.burnFlash();
-        this.m_sourceMotor.burnFlash();
-        this.m_ampMotor.burnFlash();
-
         requestIntakeType = 0;
     }
 
