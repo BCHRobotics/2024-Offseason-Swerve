@@ -1,3 +1,7 @@
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
+
 package frc.robot.subsystems.swervedrive;
 
 import com.pathplanner.lib.auto.AutoBuilder;
@@ -21,8 +25,8 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
 import frc.robot.Constants.AutonConstants;
 import java.io.File;
 import java.util.function.DoubleSupplier;
-// import org.photonvision.PhotonCamera;
-// import org.photonvision.targeting.PhotonPipelineResult;
+import org.photonvision.PhotonCamera;
+import org.photonvision.targeting.PhotonPipelineResult;
 import swervelib.SwerveController;
 import swervelib.SwerveDrive;
 import swervelib.SwerveDriveTest;
@@ -132,8 +136,6 @@ public class SwerveSubsystem extends SubsystemBase
    * @param camera {@link PhotonCamera} to communicate with.
    * @return A {@link Command} which will run the alignment.
    */
-
-   /* 
   public Command aimAtTarget(PhotonCamera camera)
   {
     return run(() -> {
@@ -147,7 +149,6 @@ public class SwerveSubsystem extends SubsystemBase
       }
     });
   }
-  */
 
   /**
    * Get the path follower with events.
@@ -322,6 +323,7 @@ public class SwerveSubsystem extends SubsystemBase
   @Override
   public void periodic()
   {
+    //swerveDrive.updateOdometry();
   }
 
   @Override

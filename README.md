@@ -1,52 +1,115 @@
-# FIRST Robotics Team 2386 - Trojans: 2023 Offseason Swerve Drive
+# Yet Another Generic Swerve Library (YAGSL) Example project
 
-2386 Swerve Drive Code. Offseason project (Sept 2023 - Jan 2024).
+YAGSL is intended to be an easy implementation of a generic swerve drive that should work for most
+square swerve drives. The project is documented
+on [here](https://github.com/BroncBotz3481/YAGSL/wiki). The JSON documentation can also be
+found [here](docs/START.md)
 
-## Getting Started
+This example is intended to be a starting place on how to use YAGSL. By no means is this intended to
+be the base of your robot project. YAGSL provides an easy way to generate a SwerveDrive which can be
+used in both TimedRobot and Command-Based Robot templates.
+
+
+# Overview
 
 ### Installation
 
-To run edit the code you must have the following items on your computer:
-* WPILib VSCode: (https://github.com/wpilibsuite/allwpilib/releases)
-* Java Tools: (https://code.visualstudio.com/docs/languages/java)
-
-To drive the code you must have:
-* FRC tools (Windows only, for driving): (https://www.ni.com/en-us/support/downloads/drivers/download.frc-game-tools.html)
-
-### Vendor Libraries
-
-These are the vendor libraries that we are using. These are what you need to copy if they are missing.
+Vendor URL:
 
 ```
-
-https://dev.studica.com/releases/2024/NavX.json
-https://software-metadata.revrobotics.com/REVLib-2024.json
-https://3015rangerrobotics.github.io/pathplannerlib/PathplannerLib.json
+https://broncbotz3481.github.io/YAGSL-Lib/yagsl/yagsl.json
 ```
 
-### Running the code
+[Javadocs here](https://broncbotz3481.github.io/YAGSL/)  
+[Library here](https://github.com/BroncBotz3481/YAGSL/)  
+[Code here](https://github.com/BroncBotz3481/YAGSL/tree/main/swervelib)  
+[WIKI](https://github.com/BroncBotz3481/YAGSL/wiki)  
+[Config Generation](https://broncbotz3481.github.io/YAGSL-Example/)
 
-1. Clone or download this repo to your computer
-2. Connect to the robot with one of the following
-    * USB A to B
-    * Wireless
-    * Wired Ethernet
-3. Right Click on **build.gradle** and click **Deploy Robot Code**
-4. Launch Driver Station and Shuffleboard
-5. Drive the Robot!
+# Create an issue if there is any errors you find!
 
-## License
+We will be actively montoring this and fix any issues when we can!
 
-FIRST BSD License
+## Development
 
-Copyright (c) 2009-2024 FIRST and other WPILib contributors 
-Copyright (c) 2020-2024 Team 2386
-All rights reserved.
+* Development happens here on `YAGSL-Example`. `YAGSL` and `YAGSL-Lib` are updated on a nightly
+  basis.
 
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+# Support our developers!
+<a href='https://ko-fi.com/yagsl' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Robot at ko-fi.com'></a>
 
-   Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-   Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-   Neither the name of FIRST, WPILib, nor the names of other WPILib contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+### TL;DR Generate and download your configuration [here](https://broncbotz3481.github.io/YAGSL-Example/) and unzip it so that it follows structure below:
 
-THIS SOFTWARE IS PROVIDED BY FIRST AND OTHER WPILIB CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY NONINFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL FIRST OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```text
+deploy
+└── swerve
+    ├── controllerproperties.json
+    ├── modules
+    │   ├── backleft.json
+    │   ├── backright.json
+    │   ├── frontleft.json
+    │   ├── frontright.json
+    │   ├── physicalproperties.json
+    │   └── pidfproperties.json
+    └── swervedrive.json
+```
+
+### Then create your SwerveDrive object like this.
+
+```java
+import java.io.File;
+import edu.wpi.first.wpilibj.Filesystem;
+import swervelib.parser.SwerveParser;
+import swervelib.SwerveDrive;
+import edu.wpi.first.math.util.Units;
+
+
+SwerveDrive swerveDrive=new SwerveParser(new File(Filesystem.getDeployDirectory(),"swerve")).createSwerveDrive(Units.feetToMeters(14.5));
+```
+
+# Migrating Old Configuration Files
+
+1. Delete `wheelDiamter`, `gearRatio`, `encoderPulsePerRotation` from `physicalproperties.json`
+2. Add `optimalVoltage` to `physicalproperties.json`
+3. Delete `maxSpeed` and `optimalVoltage` from `swervedrive.json`
+4. **IF** a swerve module doesn't have the same drive motor or steering motor as the rest of the
+   swerve drive you **MUST** specify a `conversionFactor` for BOTH the drive and steering motor in
+   the modules configuration JSON file. IF one of the motors is the same as the rest of the swerve
+   drive and you want to use that `conversionFactor`, set the `conversionFactor` in the module JSON
+   configuration to 0.
+5. You MUST specify the maximum speed when creating a `SwerveDrive`
+   through `new SwerveParser(directory).createSwerveDrive(maximumSpeed);`
+6. IF you do not want to set `conversionFactor` in `swervedrive.json`. You can pass it into the
+   constructor as a parameter like this
+
+```java
+double DriveConversionFactor = SwerveMath.calculateMetersPerRotation(Units.inchesToMeters(WHEEL_DIAMETER), GEAR_RATIO, ENCODER_RESOLUTION);
+double SteeringConversionFactor = SwerveMath.calculateDegreesPerSteeringRotation(GEAR_RATIO, ENCODER_RESOLUTION);
+SwerveDrive swerveDrive = new SwerveParser(directory).createSwerveDrive(maximumSpeed, SteeringConversionFactor, DriveConversionFactor);
+```
+
+### Falcon Support would not have been possible without support from Team 1466 Webb Robotics!
+
+# Configuration Tips
+
+### My Robot Spins around uncontrollably during autonomous or when attempting to set the heading!
+
+* Invert the gyro scope.
+* Invert the drive motors for every module. (If front and back become reversed when turning)
+
+### Angle motors are erratic.
+
+* Invert the angle motor.
+
+### My robot is heavy.
+
+* Implement momentum velocity limitations in SwerveMath.
+
+### Ensure the IMU is centered on the robot
+
+# Maintainers
+- @thenetworkgrinch
+- @Technologyman00 
+
+# Special Thanks to Team 7900! Trial N' Terror
+Without the debugging and aid of Team 7900 the project could never be as stable or active as it is. 
