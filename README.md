@@ -1,6 +1,6 @@
-# FIRST Robotics Team 2386 - Trojans: 2023 Offseason Swerve Drive
+# FIRST Robotics Team 2386 - Trojans: 2024 Offseason Swerve Drive
 
-2386 Swerve Drive Code. Offseason project (Sept 2023 - Jan 2024).
+2386 Swerve Drive Code. Offseason project (March 2024 - January 2025).
 
 ## Getting Started
 
