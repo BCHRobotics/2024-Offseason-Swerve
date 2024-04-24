@@ -12,17 +12,10 @@ import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
 
-import edu.wpi.first.apriltag.AprilTagFieldLayout;
-import edu.wpi.first.apriltag.AprilTagFields;
-import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform2d;
-import edu.wpi.first.math.geometry.Transform3d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
@@ -35,6 +28,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
+import frc.robot.Constants.DriveConstants.DriveModes;
 import frc.robot.Constants.VisionConstants.CameraMode;
 import frc.utils.SwerveUtils;
 import frc.utils.VisionUtils;
@@ -42,7 +36,6 @@ import frc.utils.devices.Camera;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Drivetrain extends SubsystemBase {
-
   // Create MAXSwerveModules
   private final MAXSwerveModule m_frontLeft = new MAXSwerveModule(
       DriveConstants.kFrontLeftDrivingCanId,
@@ -86,26 +79,15 @@ public class Drivetrain extends SubsystemBase {
   private final Camera m_noteCamera = new Camera(VisionConstants.kNoteCameraName); // These names might need to be changed
   private final Camera m_tagCamera = new Camera(VisionConstants.kTagCameraName); // this too
 
-  // Whether or not to try and align with a target
-  private boolean isAlignmentActive = false;
-  // Is true when the robot has finished a vision command
-  private boolean isAlignmentSuccess = false;
-  private CameraMode cameraMode = CameraMode.NOTE;
-
   // The stored field position of the target apriltag
-  private Pose2d ampTargetPose;
-  private Pose2d speakerTargetPose;
+  public Pose2d ampTargetPose;
+  public Pose2d speakerTargetPose;
 
   private boolean isRedAlliance;
 
-  private double lockHeadingAngle;
-  private boolean isHeadingLocked;
-  private PIDController headingController;
-
-  private PIDController noteAlignmenController;
-
   private boolean isVisionAuto;
-  private Rotation2d tagHeading;
+
+  private DriveModes driveMode = DriveModes.MANUAL;
 
   // Odometry class for tracking robot pose
   SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
@@ -118,41 +100,24 @@ public class Drivetrain extends SubsystemBase {
           m_rearRight.getPosition()
       });
 
-  AprilTagFieldLayout aprilTagFieldLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
-
-  Transform3d robotToCam = new Transform3d(new Translation3d(0.5, 0.0, 0.5), new Rotation3d(0,0,0)); //Cam mounted facing forward, half a meter forward of center, half a meter up from center.
-
-  // Construct PhotonPoseEstimator
-  //PhotonPoseEstimator photonPoseEstimator = new PhotonPoseEstimator(aprilTagFieldLayout, PoseStrategy.CLOSEST_TO_REFERENCE_POSE, m_tagCamera.getInstance(), robotToCam); // I'm using getInstance here as a temporary solution
-
-  /*
-  public Optional<EstimatedRobotPose> getEstimatedGlobalPose(Pose2d prevEstimatedRobotPose) {
-        photonPoseEstimator.setReferencePose(prevEstimatedRobotPose);
-        return photonPoseEstimator.update();
-  }
-  */
-
   /** Creates a new DriveSubsystem. */
   public Drivetrain() {
     this.initializeAuto();
-
-    cameraMode = CameraMode.NOTE;
-
-    headingController = new PIDController(0.015, 0, 0.00144);
-    noteAlignmenController = new PIDController(VisionConstants.kNoteP, VisionConstants.kNoteI, VisionConstants.kNoteD);
   }
 
-  public void lockHeading(double angle) {
-    lockHeadingAngle = angle;
-    isHeadingLocked = true;
+  // Very important drive mode functions that make everything work
+  public DriveModes getDriveMode() {
+    return driveMode;
   }
-  
-  public void unlockHeading() {
-    isHeadingLocked = false;
+
+  public void setDriveMode(DriveModes modeToSet) {
+    driveMode = modeToSet;
   }
 
   @Override
   public void periodic() {
+    Mechanism.getInstance().shotLights(VisionUtils.isReadyToShoot(6, 0.5, 0.8, this.m_odometry.getPoseMeters().getRotation().getDegrees()));
+
     // Refresh the data gathered by the camera
     m_noteCamera.refreshResult();
     m_tagCamera.refreshResult();
@@ -169,10 +134,6 @@ public class Drivetrain extends SubsystemBase {
             m_rearLeft.getPosition(),
             m_rearRight.getPosition()
         });
-
-    if (m_tagCamera.hasTargetOfId(4)) {
-      tagHeading = Rotation2d.fromDegrees(m_tagCamera.getTagAngleError(4)).plus(getPose().getRotation());
-    }
 
     // Print debug values to smartDashboard
     this.printToDashboard();
@@ -191,18 +152,6 @@ public class Drivetrain extends SubsystemBase {
   }
 
   /**
-   * Checks whether the robot has finished aligning with a target
-   * 
-   * (ONLY USED DURING AUTO)
-   * this functions as the end condition for the alignment functions
-   * 
-   * @return whether or not the robot has finished aligning
-   */
-  public boolean checkAlignment() {
-    return isAlignmentSuccess; // This boolean variable is true when the robot has finished aligning (to either a tag or note)
-  }
-
-  /**
    * The function to be called periodically in order to drive the robot,
    * either with vision, heading lock, or manually
    * @param xSpeed the x axis commanded speed [-1 -> 1]
@@ -212,65 +161,52 @@ public class Drivetrain extends SubsystemBase {
    * @param rateLimit whether to use rate limiting
    * @param noteLoaded whether there is a note loaded in the bot
    */
-  public void driveCommand(double xSpeed, double ySpeed, double rotSpeed, boolean fieldRelative, boolean rateLimit, boolean noteLoaded) {
-    if (!isAlignmentActive) {
-      // Nullify this because as soon as vision stops and the driver moves the bot this value will be wrong
-      tagHeading = null;
+  // public void driveCommand(double xSpeed, double ySpeed, double rotSpeed, boolean fieldRelative, boolean rateLimit, boolean noteLoaded) {
+  //   if (!isAlignmentActive) {
+  //     // If there is an attempted rotation on the joystick, unlock the heading
+  //     if (Math.abs(rotSpeed) > 0.04) {
+  //       isHeadingLocked = false;
+  //     }
 
-      // If there is an attempted rotation on the joystick, unlock the heading
-      if (Math.abs(rotSpeed) > 0.04) {
-        isHeadingLocked = false;
-      }
-
-      // If the heading is locked, turn the bot to the desired heading with a PID controller
-      if (isHeadingLocked) {
-        drive(xSpeed, ySpeed, headingController.calculate(getHeading(), lockHeadingAngle), fieldRelative, rateLimit);
-      }
-      else { // If not just use the joystick inputs
-        drive(xSpeed, ySpeed, rotSpeed, fieldRelative, rateLimit);
-      }
-    }
-    else { // If vision is enabled
-      // If the vision mode is set to look for notes
-      if (cameraMode == CameraMode.NOTE) {
-        // Align heading to the note using vision while driving forwards (only forwards)
-        drive(Math.sqrt(Math.pow(ySpeed, 2) + Math.pow(xSpeed, 2)), 0, rotSpeed + noteAlignmenController.calculate(m_noteCamera.getAngleError()), false, rateLimit);
+  //     // If the heading is locked, turn the bot to the desired heading with a PID controller
+  //     if (isHeadingLocked) {
+  //       drive(xSpeed, ySpeed, headingController.calculate(getHeading(), lockHeadingAngle), fieldRelative, rateLimit);
+  //     }
+  //     else { // If not just use the joystick inputs
+  //       drive(xSpeed, ySpeed, rotSpeed, fieldRelative, rateLimit);
+  //     }
+  //   }
+  //   else { // If vision is enabled
+  //     // If the vision mode is set to look for notes
+  //     if (cameraMode == CameraMode.NOTE) {
+  //       // Align heading to the note using vision while driving forwards (only forwards)
+  //       drive(Math.sqrt(Math.pow(ySpeed, 2) + Math.pow(xSpeed, 2)), 0, rotSpeed + noteAlignmenController.calculate(m_noteCamera.getAngleError()), false, rateLimit);
         
-        // When there is a note loaded, cancel the alignment command
-        if (noteLoaded) {
-          cancelAlign();
-        }
-      }
+  //       // When there is a note loaded, cancel the alignment command
+  //       if (noteLoaded) {
+  //         cancelAlign();
+  //       }
+  //     }
 
-      // Retrieve the target pose of either the amp or speaker depending on camera mode
-      Pose2d targetPose = cameraMode == CameraMode.AMP ? ampTargetPose : speakerTargetPose;
-      if ((cameraMode == CameraMode.AMP || cameraMode == CameraMode.SPEAKER) && targetPose != null) {
-        // Use alignWithTagExact() to construct a drive 
-        Transform2d alignCommand = VisionUtils.alignWithTagRadial(targetPose, getPose(), 
-                                                                  cameraMode.getOffsets()[0], 
-                                                                  tagHeading.minus(getPose().getRotation()).getDegrees());
+  //     // Retrieve the target pose of either the amp or speaker depending on camera mode
+  //     Pose2d targetPose = cameraMode == CameraMode.AMP ? ampTargetPose : speakerTargetPose;
+  //     if ((cameraMode == CameraMode.AMP || cameraMode == CameraMode.SPEAKER) && targetPose != null) {
+  //       // Use alignWithTagExact() to construct a drive 
+  //       Transform2d alignCommand = VisionUtils.alignWithTagRadial(targetPose, getPose(), 
+  //                                                                 cameraMode.getOffsets()[0]);
 
-        if (alignCommand == null) {
-          isAlignmentSuccess = true;
-          isAlignmentActive = false;
-          setChassisSpeeds(new ChassisSpeeds(0, 0, 0));
-        }
-        else {
-          isAlignmentSuccess = false;
-          drive(alignCommand.getX(), alignCommand.getY(), alignCommand.getRotation().getDegrees(), true, true);
-        }
-      }
-    }
-  }
-
-  /**
-   * A function that cancels the alignment, 
-   * if the robot is trying to align to something
-   */
-  public void cancelAlign() {
-    isAlignmentActive = false;
-    isAlignmentSuccess = true;
-  }
+  //       if (alignCommand == null) {
+  //         isAlignmentSuccess = true;
+  //         isAlignmentActive = false;
+  //         setChassisSpeeds(new ChassisSpeeds(0, 0, 0));
+  //       }
+  //       else {
+  //         isAlignmentSuccess = false;
+  //         drive(alignCommand.getX(), alignCommand.getY(), alignCommand.getRotation().getDegrees(), true, true);
+  //       }
+  //     }
+  //   }
+  // }
 
   /**
    * Returns the currently-estimated pose of the robot.
@@ -302,17 +238,6 @@ public class Drivetrain extends SubsystemBase {
 
   public void autoVision(boolean input) {
     isVisionAuto = input;
-  }
-
-  /**
-   * Starts aligning with the specified target
-   * @param modeToSet the target (either AMP, SPEAKER, or NOTE)
-   */
-  public void setVisionMode(CameraMode modeToSet) {
-    isAlignmentSuccess = false; // Set this to false so the alignment doesn't finish instantly
-
-    cameraMode = modeToSet; // Set the camera mode
-    isAlignmentActive = true; // Start aligning
   }
 
   /**
@@ -599,9 +524,6 @@ public class Drivetrain extends SubsystemBase {
     // SmartDashboard.putString("Rear left Encoder", m_rearLeft.getState().toString());
     // SmartDashboard.putString("Rear right Encoder", m_rearRight.getState().toString());
 
-    SmartDashboard.putBoolean("Align", isAlignmentActive);
-    SmartDashboard.putBoolean("Alignment Success", isAlignmentSuccess);
-
     // Apriltag target location/rotation for amp (field relative space)
     if (ampTargetPose != null) {
       // SmartDashboard.putNumber("Target X", ampTargetPose.getX());
@@ -612,6 +534,9 @@ public class Drivetrain extends SubsystemBase {
 
     // Apriltag target location/rotation for speaker (field relative space)
     if (speakerTargetPose != null) {
+      double xDist = new Transform2d(getPose(), speakerTargetPose).getX();
+      double yDist = new Transform2d(getPose(), speakerTargetPose).getY();
+      SmartDashboard.putNumber("DIST", Math.sqrt(xDist * xDist + yDist * yDist));
       // SmartDashboard.putNumber("Target X", speakerTargetPose.getX());
       // SmartDashboard.putNumber("Target Y", speakerTargetPose.getY());
 
@@ -625,7 +550,5 @@ public class Drivetrain extends SubsystemBase {
     // Are the cameras connected?
     SmartDashboard.putBoolean("Note Cam Connected", m_noteCamera.isConnected());
     SmartDashboard.putBoolean("Tag Cam Connected", m_tagCamera.isConnected());
-
-    SmartDashboard.putNumber("Error", tagError);
   }
 }

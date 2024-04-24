@@ -25,6 +25,15 @@ import edu.wpi.first.math.util.Units;
  */
 public final class Constants {
   public static final class DriveConstants {
+    // Ways to drive the robot
+    public enum DriveModes {
+      MANUAL,
+      HEADINGLOCK,
+      NOTEALIGN,
+      AMPALIGN,
+      SPEAKERALIGN;
+    }
+
     // Driving Parameters - Note that these are not the maximum and minimum capable speeds of
     // the robot, rather the allowed maximum and minimum speeds.
     public static final double kMaxSpeedMetersPerSecond = 4.1;
@@ -162,15 +171,18 @@ public final class Constants {
     public static final int kBlueLEDPort = 7;
   }
   public static final class VisionConstants{
-    // Height of the camera (not used anywhere right now)
-    public static final double kCameraHeight = 0.0;
+    public enum VisionProfile {
+      EXACT,
+      RADIAL
+    }
 
     // Camera modes, with their respective desired offsets
+    // TODO: implement apriltag ids into this system
     public enum CameraMode {
       NONE(new double[]{0, 0}, 0, 0), // values aren't used here
       NOTE(new double[]{0, 0}, 0, 0), // values aren't used here
       AMP(new double[]{0.61, 0}, -90, -90),
-      SPEAKER(new double[]{2.04, 0}, 0, 180);
+      SPEAKER(new double[]{1.9, 0}, 0, 180);
 
       private final double[] offsets;
       private final double redHeading;
@@ -216,13 +228,13 @@ public final class Constants {
     }
 
     // Speed and rotation caps for vision
-    public static final double kVisionSpeedLimit = 0.8; //0.4
+    public static final double kVisionSpeedLimit = 0.2; //0.4
     public static final double kVisionTurningLimit = 0.8;  //0.4
 
     // How close to an apriltag the robot has to be before stopping (meters)
     public static final double kTagDistanceThreshold = 0.03;
     // The amount of rotational error alowed (degrees)
-    public static final double kTagRotationThreshold = 7;
+    public static final double kTagRotationThreshold = 10;
     // How far away the bot is before it starts slowing down (farther than this it goes full speed as defined by kVisionSpeedLimit)
     public static final double kTagSlowdownDistance = 0.8;
 

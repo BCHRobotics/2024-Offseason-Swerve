@@ -70,8 +70,6 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }
-
-    m_robotContainer.setupAuto();
   }
 
   /** This function is called periodically during autonomous. */
@@ -90,8 +88,8 @@ public class Robot extends TimedRobot {
 
     final boolean isRed = DriverStation.getAlliance().get() == DriverStation.Alliance.Red;
 
-    // Configures the input method (xbox or flightstick) when entering teleop
-    m_robotContainer.configureDefaultCommands(isRed);
+    // Schedules the teleop drive command when entering teleop
+    m_robotContainer.configureDriveMode(isRed);
   }
 
   /** This function is called periodically during operator control. */
@@ -102,7 +100,6 @@ public class Robot extends TimedRobot {
   public void testInit() {
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
-    m_robotContainer.setupTeleop();
   }
 
   /** This function is called periodically during test mode. */

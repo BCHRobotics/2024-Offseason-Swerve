@@ -3,10 +3,7 @@ package frc.utils;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.VisionConstants;
-import frc.robot.Constants.VisionConstants.CameraMode;
 
 public class VisionUtils {
 
@@ -54,6 +51,67 @@ public class VisionUtils {
       Transform2d fieldTransform = new Transform2d(fieldX, fieldY, objectTransform.getRotation());
 
       return fieldTransform;
+    }
+
+    public static boolean isReadyToShoot(double vi, double h, double shootAngle, double robotHeading) {
+      double initialVelocityScalar = vi;
+      double initialVelocityUp = initialVelocityScalar * Math.sin(shootAngle);
+      double initialVelocityForward = initialVelocityScalar * Math.cos(shootAngle);
+
+      Transform2d initialVelocityFieldRelative = robotToField(new Transform2d(initialVelocityForward, 0, new Rotation2d()), robotHeading);
+
+      double g = 9.81;
+
+      // a values for the parabolas
+      double ax = g / (2 * Math.pow(Math.sqrt(Math.pow(initialVelocityFieldRelative.getX(), 2) + Math.pow(initialVelocityUp, 2)), 2) * Math.pow(Math.cos(Math.atan(initialVelocityUp / initialVelocityFieldRelative.getX())), 2));
+      double ay = g / (2 * Math.pow(Math.sqrt(Math.pow(initialVelocityFieldRelative.getY(), 2) + Math.pow(initialVelocityUp, 2)), 2) * Math.pow(Math.cos(Math.atan(initialVelocityUp / initialVelocityFieldRelative.getY())), 2));
+
+      // discriminants
+      double discriminantX = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getX(), 2) - 4 * ax * h);
+      double discriminantY = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getY(), 2) - 4 * ay * h);
+
+      // Where is the speaker
+      double minX = 0;
+      double maxX = 0;
+      double minY = 0;
+      double maxY = 0;
+
+      if (discriminantX > 0 || discriminantY > 0) {
+        double xval1 = (initialVelocityUp / initialVelocityFieldRelative.getX() * -1 + discriminantX) / (2 * ax);
+        double xval2 = (initialVelocityUp / initialVelocityFieldRelative.getX() * -1 - discriminantX) / (2 * ax);
+
+        double yval1 = (initialVelocityUp / initialVelocityFieldRelative.getY() * -1 + discriminantY) / (2 * ay);
+        double yval2 = (initialVelocityUp / initialVelocityFieldRelative.getY() * -1 - discriminantY) / (2 * ay);
+
+        double xval;
+        double yval;
+
+        // all this logic to take the closest to 0 out of x and y values
+        if (initialVelocityFieldRelative.getX() < 0) {
+          xval = xval1 > xval2 ? xval1 : xval2;
+        }
+        else {
+          xval = xval1 > xval2 ? xval2 : xval1;
+        }
+
+        if (initialVelocityFieldRelative.getY() < 0) {
+          yval = yval1 > yval2 ? yval1 : yval2;
+        }
+        else {
+          yval = yval1 > yval2 ? yval2 : yval1;
+        }
+
+        if (xval < maxX && xval > minX && yval < maxY && yval > minY) {
+          return true;
+        }
+        else {
+          return false;
+        }
+      }
+      else {
+        return false;
+      }
+
     }
 
     /**
@@ -129,16 +187,14 @@ public class VisionUtils {
     }
 
     /**
-     * UNUSED (AND PROBABLY BROKEN) FUNCTION
      * A function for calculating a the movement towards a circle 
      * defined by a given apriltag (USED FOR THE SPEAKER)
      * @param targetPose the pose of the apriltag
      * @param robotPose the pose of the robot
      * @param desiredRadius how far you want to be from the target
-     * @param tagAngleError the angle of the tag (0 is straight ahead)
      * @return
      */
-    public static Transform2d alignWithTagRadial(Pose2d targetPose, Pose2d robotPose, double desiredRadius, double tagAngleError) {
+    public static Transform2d alignWithTagRadial(Pose2d targetPose, Pose2d robotPose, double desiredRadius) {
         // Apriltag alignment code
         if (targetPose != null) {
           double distToTag = robotPose.getTranslation().getDistance(targetPose.getTranslation());
@@ -147,8 +203,10 @@ public class VisionUtils {
           double xCommand = (distToTag > desiredRadius) ? (targetPose.getX() - robotPose.getX()) : (targetPose.getX() - robotPose.getX()) * -1;
           double yCommand = (distToTag > desiredRadius) ? (targetPose.getY() - robotPose.getY()) : (targetPose.getY() - robotPose.getY()) * -1;
           
+          Rotation2d errorRot = Rotation2d.fromRadians(-Math.atan2(targetPose.getX() - robotPose.getX(), targetPose.getY() - robotPose.getY())).minus(Rotation2d.fromDegrees(90));
+          Rotation2d command = errorRot.minus(robotPose.getRotation());
           // Commanded rotation based on the tag angle
-          double rotCommand = -tagAngleError;
+          double rotCommand = command.getDegrees() * 0.5f;
   
           // x axis command
           xCommand = (xCommand < 0) ? 
@@ -180,18 +238,21 @@ public class VisionUtils {
           }
   
           // Check if robot is within acceptable boundaries
-          boolean rotFinished = Math.abs(Math.atan((targetPose.getY() - robotPose.getY()) / (targetPose.getX() - robotPose.getX()))) < VisionConstants.kTagRotationThreshold;
+          boolean rotFinished = Math.abs(command.getDegrees()) < VisionConstants.kTagRotationThreshold;
           boolean posFinished = Math.abs(distToTag - desiredRadius) < VisionConstants.kTagDistanceThreshold;
   
+          if (rotFinished) {rotCommand = 0;}
+          if (posFinished) {xCommand = 0; yCommand = 0;}
+
           if (rotFinished && posFinished) {
-              return new Transform2d(0, 0, Rotation2d.fromDegrees(0));
+            return null;
           }
   
           // TODO: Maybe get rid of the * 0.3?
-          return new Transform2d(0, 0, Rotation2d.fromDegrees(rotCommand * 0.3));
+          return new Transform2d(xCommand, yCommand, Rotation2d.fromDegrees(rotCommand * 0.3));
         }
         else {
-          return new Transform2d(0, 0, Rotation2d.fromDegrees(0));
+          return null;
         }
     }
-}
+  }

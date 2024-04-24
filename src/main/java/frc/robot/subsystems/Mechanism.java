@@ -145,7 +145,6 @@ public class Mechanism extends SubsystemBase{
         switch (requestIntakeType) {
             case 1 -> this.powerLEDs(LEDColor.PURPLE);
             case 2 -> this.powerLEDs(LEDColor.CYAN);
-            default -> noteLights();
         }
 
         // Intake request lights
@@ -175,7 +174,7 @@ public class Mechanism extends SubsystemBase{
             () -> {
                 this.setBeltSpeed(0.0);
             }).until(() -> this.checkState(Phase.LOADED))
-        .andThen(confirmIntake()));
+        );
     }
 
     /**
@@ -234,7 +233,7 @@ public class Mechanism extends SubsystemBase{
             })
             .until(() -> this.checkState(Phase.LOADED))
             .andThen(this.m_elevator.moveToPositionCommand(ElevatorPositions.INTAKE))
-        ).andThen(confirmIntake());
+        );
     }
 
     /**
@@ -255,7 +254,6 @@ public class Mechanism extends SubsystemBase{
                 this.setAmpSpeed(-speed);
             })
             .until(() -> this.checkState(Phase.NONE))
-            .andThen(lightsOff())
             .andThen(this.m_elevator.moveToPositionCommand(ElevatorPositions.INTAKE));
     }
 
@@ -286,7 +284,7 @@ public class Mechanism extends SubsystemBase{
                     this.setSourceSpeed(0);
                     this.setAmpSpeed(0);
                 }
-            ).andThen(lightsOff())
+            )
             .andThen(this.m_elevator.moveToPositionCommand(ElevatorPositions.INTAKE))
             .beforeStarting(new WaitCommand(0.25))
         );
@@ -317,7 +315,7 @@ public class Mechanism extends SubsystemBase{
                     this.setAmpSpeed(0);
                 }
             )
-        ).andThen(lightsOff());
+        );
     }
 
     /**
@@ -354,28 +352,7 @@ public class Mechanism extends SubsystemBase{
           this.setSourceSpeed(0);
           this.setAmpSpeed(0);
           this.setWheelState(false);
-          this.noteLights();
         });
-    }
-
-    /**
-     * A command for the rainbow-light-thing
-     */
-    public Command lightShow() {
-        return Commands.sequence(
-            this.runOnce(() -> this.powerLEDs(LEDColor.BLUE)),
-            new WaitCommand(0.25),
-            this.runOnce(() -> this.powerLEDs(LEDColor.YELLOW)),
-            new WaitCommand(0.35),
-            this.runOnce(() -> this.powerLEDs(LEDColor.BLUE)),
-            new WaitCommand(0.25),
-            this.runOnce(() -> this.powerLEDs(LEDColor.YELLOW)),
-            new WaitCommand(0.35),
-            this.runOnce(() -> this.powerLEDs(LEDColor.BLUE)),
-            new WaitCommand(0.25),
-            this.runOnce(() -> this.powerLEDs(LEDColor.YELLOW)),
-            new WaitCommand(0.35)
-        ).repeatedly();
     }
 
     /**
@@ -419,19 +396,6 @@ public class Mechanism extends SubsystemBase{
     }
 
     /**
-     * A command for either turning the lights
-     * off or green depending on if a note is loaded
-     */
-    public void noteLights() {
-        if (this.checkState(Phase.NONE)) {
-            this.powerLEDs(LEDColor.OFF);
-        }
-        else {
-            this.powerLEDs(LEDColor.GREEN);
-        }
-    }
-
-    /**
      * A command for turning off all the LEDs
      */
     public Command lightsOff() {
@@ -444,6 +408,15 @@ public class Mechanism extends SubsystemBase{
      */
     public void powerLEDs(LEDColor color) {
         this.m_LEDs.setLEDs(color);
+    }
+
+    public void shotLights(boolean willHit) {
+        if (willHit) {
+            this.powerLEDs(LEDColor.GREEN);
+        }
+        else {
+            this.powerLEDs(LEDColor.RED);
+        }
     }
 
     public void periodic() {

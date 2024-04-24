@@ -7,27 +7,25 @@ package frc.robot;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.OIConstants;
 import frc.robot.Constants.ElevatorConstants.ElevatorPositions;
 import frc.robot.Constants.LEDConstants.LEDColor;
-import frc.robot.Constants.VisionConstants.CameraMode;
 import frc.robot.commands.CombinedCommands;
-import frc.robot.Constants.VisionConstants;
+import frc.robot.commands.HeadingLockDriveCommand;
+import frc.robot.commands.TeleopDriveCommand;
+import frc.robot.commands.vision.AlignWithAmpCommand;
+import frc.robot.commands.vision.AlignWithSpeakerCommand;
+import frc.robot.Constants.DriveConstants.DriveModes;
 import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.Mechanism;
 import frc.utils.devices.BeamBreak;
-import frc.utils.devices.BeamBreak.Phase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
-import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 /*
  * This class is where the bulk of the robot should be declared.  Since Command-based is a
@@ -64,33 +62,52 @@ public class RobotContainer {
         // Build an auto chooser. This will use Commands.none() as the default option.
         autoChooser = AutoBuilder.buildAutoChooser();
         SmartDashboard.putData("Auto Chooser", autoChooser);
-
-        // Configure the button bindings
-        this.configureButtonBindings();
-        // Configure the default commands for the input method chosen
-        this.configureDefaultCommands(false);
     }
 
-    /**
-     * Method for configuring the default command (drive) of the joystick
-     * @param isRedAlliance the alliance color (to determine if things should be reversed)
-     */
-    public void configureDefaultCommands(boolean isRedAlliance) {
+    public void configureDriveMode(boolean isRedAlliance) {
         final double invert = isRedAlliance ? -1 : 1;
+        
+        m_robotDrive.setDefaultCommand(new TeleopDriveCommand(
+            () -> -m_driverController.getLeftY() * invert,
+            () -> -m_driverController.getLeftX() * invert,
+            () -> -m_driverController.getRightX(),
+            () -> OIConstants.kFieldRelative, () -> OIConstants.kRateLimited,
+            m_robotDrive));
+
+        /* 
+         * CURRENT BUTTON LAYOUT (subject to change):
+         * 
+         * -- Driver Controller -- 
+         * 
+         * Y -- RESET GYRO
+         * LEFT TRIGGER -- BRAKE
+         * LEFT BUMPER -- TOGGLE SLOW MODE
+         * RIGHT TRIGGER -- ALIGN WITH SPEAKER
+         * X -- ALIGN WITH AMP
+         * B -- ALIGN WITH NOTE
+         * A -- CANCEL ALIGN
+         * POV UP, DOWN, LEFT, RIGHT -- HEADING LOCKS
+         * 
+         * -- Operator Controller --
+         * 
+         * POV UP -- ELEVATOR TO AMP
+         * POV RIGHT -- ELEVATOR TO SOURCE
+         * POV DOWN -- ELEVATOR TO GROUND
+         * LEFT BUMPER -- REQUEST GROUND INTAKE
+         * RIGHT BUMPER -- REQUEST SOURCE INTAKE
+         * POV LEFT -- SCORE SPEAKER (CHARGE WHEELS IF NOT CHARGED)
+         * B -- SCORE AMP 
+         * Y -- SOURCE INTAKE
+         * X -- GROUND INTAKE
+         * A -- CANCEL INTAKE
+         * LEFT TRIGGER -- RELEASE NOTE
+         * RIGHT TRIGGER -- CHARGE SPEAKER WHEELS
+         */
+
+        configureButtonBindingsDriver(isRedAlliance);
+        configureButtonBindingsOperator(isRedAlliance);
 
         m_robotDrive.setAlliance(isRedAlliance);
-        
-        // Configure the drivetrain to use the XBox controller
-        m_robotDrive.setDefaultCommand(
-            // The left stick controls translation of the robot.
-            // Turning is controlled by the X axis of the right stick.
-            new RunCommand(
-                    () -> m_robotDrive.driveCommand(
-                            -MathUtil.applyDeadband(m_driverController.getLeftY(), OIConstants.kDriveDeadband) * invert,
-                            -MathUtil.applyDeadband(m_driverController.getLeftX(), OIConstants.kDriveDeadband) * invert,
-                            -MathUtil.applyDeadband(m_driverController.getRightX(), OIConstants.kTurnDeadband),
-                            OIConstants.kFieldRelative, OIConstants.kRateLimited, !m_mechanism.checkState(Phase.NONE)),
-                    m_robotDrive));
     }
 
     /**
@@ -111,52 +128,11 @@ public class RobotContainer {
     }
 
     /**
-    * Use this method to define your button->command mappings. Buttons can be
-    * created by
-    * instantiating a {@link edu.wpi.first.wpilibj.GenericHID} or one of its
-    * subclasses ({@link
-    * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then calling
-    * passing it to a
-    * {@link JoystickButton}.
-    */
-    private void configureButtonBindings() {
-        /* 
-         * CURRENT BUTTON LAYOUT (subject to change):
-         * 
-         * -- Driver Controller -- 
-         * 
-         * Y -- RESET GYRO
-         * LEFT TRIGGER -- BRAKE
-         * LEFT BUMPER -- TOGGLE SLOW MODE
-         * X -- ALIGN WITH AMP
-         * B -- ALIGN WITH SPEAKER
-         * A -- CANCEL ALIGN
-         * POV UP, DOWN, LEFT, RIGHT -- HEADING LOCKS
-         * 
-         * -- Operator Controller --
-         * 
-         * POV UP -- ELEVATOR TO AMP
-         * POV RIGHT -- ELEVATOR TO SOURCE
-         * POV DOWN -- ELEVATOR TO GROUND
-         * LEFT BUMPER -- REQUEST GROUND INTAKE
-         * RIGHT BUMPER -- REQUEST SOURCE INTAKE
-         * POV LEFT -- SCORE SPEAKER (CHARGE WHEELS IF NOT CHARGED)
-         * B -- SCORE AMP 
-         * Y -- SOURCE INTAKE
-         * X -- GROUND INTAKE
-         * A -- CANCEL INTAKE
-         * LEFT TRIGGER -- RELEASE NOTE
-         * RIGHT TRIGGER -- CHARGE SPEAKER WHEELS
-         */ 
-
-        configureButtonBindingsDriver();
-        configureButtonBindingsOperator();
-    }
-
-    /**
      * Binding for driver xbox controller buttons
      */
-    private void configureButtonBindingsDriver() {
+    private void configureButtonBindingsDriver(boolean isRedAlliance) {
+        final double invert = isRedAlliance ? -1 : 1;
+
         // Brake command (Left Trigger)
         this.m_driverController.leftTrigger().whileTrue(new RunCommand(() -> m_robotDrive.setX(),m_robotDrive));
         // Slow mode command (Left Bumper)
@@ -166,29 +142,35 @@ public class RobotContainer {
         // Slow mode command (Right Bumper)
         this.m_driverController.rightBumper().onTrue(new InstantCommand(() -> m_robotDrive.setFastMode(true), m_robotDrive));
         this.m_driverController.rightBumper().onFalse(new InstantCommand(() -> m_robotDrive.setFastMode(false), m_robotDrive));
-
-        this.m_driverController.rightTrigger().onTrue(new InstantCommand(() -> m_robotDrive.setVisionMode(CameraMode.SPEAKER)));
+        
+        // Align with speaker
+        this.m_driverController.rightTrigger().onTrue(
+            new AlignWithSpeakerCommand(m_robotDrive));
 
         // Align with amp
-        this.m_driverController.x().onTrue(new InstantCommand(() -> m_robotDrive.setVisionMode(CameraMode.AMP)));
-        // Align with speaker
-        this.m_driverController.b().onTrue(new InstantCommand(() -> m_robotDrive.setVisionMode(CameraMode.NOTE)));
-        // Reset Gyro
-        this.m_driverController.y().onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
-        // Cancel Alignment
-        this.m_driverController.a().onTrue(new InstantCommand(() -> m_robotDrive.cancelAlign()));
+        this.m_driverController.x().onTrue(
+            new AlignWithAmpCommand(m_robotDrive));
 
-        // Heading locks
-        this.m_driverController.povLeft().onTrue(new InstantCommand(() -> m_robotDrive.lockHeading(-90)));
-        this.m_driverController.povRight().onTrue(new InstantCommand(() -> m_robotDrive.lockHeading(90)));
-        this.m_driverController.povUp().onTrue(new InstantCommand(() -> m_robotDrive.lockHeading(0)));
-        this.m_driverController.povDown().onTrue(new InstantCommand(() -> m_robotDrive.lockHeading(180)));
+        // Reset Gyro
+        this.m_driverController.y().onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading()));
+        // Cancel Alignment
+        this.m_driverController.a().onTrue(new InstantCommand(() -> m_robotDrive.setDriveMode(DriveModes.MANUAL)));
+
+        // Lock heading to amp direction
+        this.m_driverController.povLeft().onTrue(
+            new HeadingLockDriveCommand(
+            () -> -m_driverController.getLeftY() * invert,
+            () -> -m_driverController.getLeftX() * invert,
+            () -> -m_driverController.getRightX(),
+            () -> OIConstants.kFieldRelative, 
+            () -> OIConstants.kRateLimited,
+            m_robotDrive));
     }
 
     /**
      * Binding for operator xbox controller buttons
      */
-    private void configureButtonBindingsOperator() {
+    private void configureButtonBindingsOperator(boolean isRedAlliance) {
         // Moving the elevator
         this.m_operatorController.povUp().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.AMP));
         this.m_operatorController.povRight().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.SOURCE));
@@ -244,21 +226,5 @@ public class RobotContainer {
      */
     public void initLEDs() {
         this.m_mechanism.powerLEDs(LEDColor.OFF);
-    }
-
-    /**
-     * Method to be run at the start of auto
-     * to ensure vision is inactive
-     */
-    public void setupAuto() {
-        m_robotDrive.cancelAlign();
-    }
-
-    /**
-     * Method to be run at the start of teleop
-     * to ensure vision is inactive
-     */
-    public void setupTeleop() {
-        m_mechanism.noteLights();
     }
 }
