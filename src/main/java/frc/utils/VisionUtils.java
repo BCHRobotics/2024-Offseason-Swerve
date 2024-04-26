@@ -3,9 +3,12 @@ package frc.utils;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.VisionConstants;
 
 public class VisionUtils {
+
+    //_____________ Coordinate Conversion Functions ____________//
 
     /**
      * A function that converts the supplied Transform2d in robot relative coordinates 
@@ -53,29 +56,47 @@ public class VisionUtils {
       return fieldTransform;
     }
 
-    public static boolean isReadyToShoot(double vi, double h, double shootAngle, double robotHeading) {
+    //_____________ Trajectory Prediction ____________//
+
+    /**
+     * @param vi The initial, scalar, velocity of the note (m/s)
+     * @param h The height of the shooter (meters)
+     * @param shootAngle The vertical angle of the shooter (radians)
+     * @param robotHeading The horizontal angle of the shooter, usually robotHeading (deg)
+     * @param targetPose The 2d field-relative position of the target, which isn't what you think it is (meters x and y)
+     * @param robotPose The pose of the robot (meters)
+     * @return
+     */
+    public static boolean isReadyToShoot(double vi, double h, double shootAngle, double robotHeading, Pose2d targetPose, Pose2d robotPose, double xv, double yv) {
       double initialVelocityScalar = vi;
       double initialVelocityUp = initialVelocityScalar * Math.sin(shootAngle);
       double initialVelocityForward = initialVelocityScalar * Math.cos(shootAngle);
 
-      Transform2d initialVelocityFieldRelative = robotToField(new Transform2d(initialVelocityForward, 0, new Rotation2d()), robotHeading);
+      Transform2d initialShootVelocity = robotToField(new Transform2d(initialVelocityForward, 0, new Rotation2d()), robotHeading);
+      Transform2d initialVelocityFieldRelative = new Transform2d(initialShootVelocity.getX() + xv, initialShootVelocity.getY() + yv, new Rotation2d());
 
+      // acceleration due to gravity
       double g = 9.81;
+
+      // Height of the target (speaker)
+      double th = 1.98;
 
       // a values for the parabolas
       double ax = g / (2 * Math.pow(Math.sqrt(Math.pow(initialVelocityFieldRelative.getX(), 2) + Math.pow(initialVelocityUp, 2)), 2) * Math.pow(Math.cos(Math.atan(initialVelocityUp / initialVelocityFieldRelative.getX())), 2));
       double ay = g / (2 * Math.pow(Math.sqrt(Math.pow(initialVelocityFieldRelative.getY(), 2) + Math.pow(initialVelocityUp, 2)), 2) * Math.pow(Math.cos(Math.atan(initialVelocityUp / initialVelocityFieldRelative.getY())), 2));
 
       // discriminants
-      double discriminantX = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getX(), 2) - 4 * ax * h);
-      double discriminantY = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getY(), 2) - 4 * ay * h);
+      double discriminantX = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getX(), 2) - 4 * ax * (h - th));
+      double discriminantY = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getY(), 2) - 4 * ay * (h - th));
 
-      // Where is the speaker
-      double minX = 0;
-      double maxX = 0;
-      double minY = 0;
-      double maxY = 0;
+      // Where is the speaker (bounds in meters)
+      // Only works for red alliance rn
+      double minX = targetPose.getX() - robotPose.getX() - 0.25;
+      double maxX = targetPose.getX() - robotPose.getX() - 0.05;
+      double minY = targetPose.getY() - robotPose.getY() - 0.4;
+      double maxY = targetPose.getY() - robotPose.getY() + 0.4;
 
+      // check if there are possible solutions
       if (discriminantX > 0 || discriminantY > 0) {
         double xval1 = (initialVelocityUp / initialVelocityFieldRelative.getX() * -1 + discriminantX) / (2 * ax);
         double xval2 = (initialVelocityUp / initialVelocityFieldRelative.getX() * -1 - discriminantX) / (2 * ax);
@@ -105,13 +126,98 @@ public class VisionUtils {
           return true;
         }
         else {
+          SmartDashboard.putNumber("Shooting Status X", xval);
+          SmartDashboard.putNumber("Shooting Status Y", yval);
           return false;
         }
       }
       else {
+        SmartDashboard.putNumber("Shooting Status X", 0);
+        SmartDashboard.putNumber("Shooting Status Y", 0);
         return false;
       }
 
+    }
+
+    //_____________ Vision Profiles ____________//
+
+    // an all-in-one function for generating vision commands (UNFINISHED)
+    // maybe change the targetpose param to an int for tag id? + add visionprofile class
+    public static Transform2d alignWithApriltag(Pose2d targetPose, Pose2d robotPose, Transform2d offset) {
+      return null;
+    }
+
+    public static double capValue(double inputValue, double cap) {
+      return 0;
+    }
+
+    // no idea if this works yet
+    public static Transform2d alignWithTagTangent(Pose2d targetPose, Pose2d robotPose, double desiredDistance) {
+      if (targetPose != null) {
+
+        Transform2d robotToTag = targetPose.minus(robotPose);
+        Transform2d robotToTagRelative = tagToField(robotToTag, -targetPose.getRotation().getDegrees());
+
+        Transform2d command = tagToField(new Transform2d(robotToTagRelative.getX(), 0, new Rotation2d()), targetPose.getRotation().getDegrees());
+
+        double xCommand = command.getX();
+        double yCommand = command.getY();
+
+        // Align the robot's rotation with the tag heading (face the same direction as the tag)
+        Rotation2d tagRotation = Rotation2d.fromDegrees(targetPose.getRotation().getDegrees());
+        Rotation2d robotRotation = robotPose.getRotation();
+
+        double rotCommand = tagRotation.minus(robotRotation).getDegrees();
+
+        // x axis command
+        xCommand = (xCommand < 0) ? 
+        Math.max(xCommand, -VisionConstants.kVisionSpeedLimit) : 
+        Math.min(xCommand, VisionConstants.kVisionSpeedLimit);
+
+        // y axis command
+        yCommand = (yCommand < 0) ? 
+        Math.max(yCommand, -VisionConstants.kVisionSpeedLimit) :
+        Math.min(yCommand, VisionConstants.kVisionSpeedLimit);
+        
+        // Rotational command
+        rotCommand = (rotCommand < 0) ? 
+        Math.max(rotCommand, -VisionConstants.kVisionTurningLimit) :
+        Math.min(rotCommand, VisionConstants.kVisionTurningLimit);
+
+        // Set the x command to full speed if far enough
+        if (Math.abs(xCommand) > VisionConstants.kTagSlowdownDistance) {
+          xCommand = (xCommand < 0) ? 
+          -VisionConstants.kVisionSpeedLimit : 
+          VisionConstants.kVisionSpeedLimit;
+        }
+
+        // Set the y command to full speed if far enough
+        if (Math.abs(yCommand) > VisionConstants.kTagSlowdownDistance) {
+          yCommand = (yCommand < 0) ? 
+          -VisionConstants.kVisionSpeedLimit : 
+          VisionConstants.kVisionSpeedLimit;
+        }
+
+        // Check if robot is within acceptable boundaries
+        boolean rotFinished = Math.abs(tagRotation.minus(robotRotation).getDegrees()) < VisionConstants.kTagRotationThreshold;
+        boolean xFinished = Math.abs(command.getX()) < VisionConstants.kTagDistanceThreshold;
+        boolean yFinished = Math.abs(command.getY()) < VisionConstants.kTagDistanceThreshold;
+
+        if (rotFinished) { rotCommand = 0; }
+        if (xFinished) { xCommand = 0; }
+        // Do not zero the y command because that should be as exact as possible
+
+        if (rotFinished && xFinished && yFinished) {
+          return null;
+        }
+        else {
+          // TODO: Maybe get rid of the * 0.3?
+          return new Transform2d(xCommand, yCommand, Rotation2d.fromDegrees(rotCommand * 0.3));
+        }
+      }
+      else {
+        return null;
+      }
     }
 
     /**
@@ -200,13 +306,14 @@ public class VisionUtils {
           double distToTag = robotPose.getTranslation().getDistance(targetPose.getTranslation());
         
           // Calculate the x and y commands, based on whether the robot should travel away or towards the tag
-          double xCommand = (distToTag > desiredRadius) ? (targetPose.getX() - robotPose.getX()) : (targetPose.getX() - robotPose.getX()) * -1;
-          double yCommand = (distToTag > desiredRadius) ? (targetPose.getY() - robotPose.getY()) : (targetPose.getY() - robotPose.getY()) * -1;
+          // this is an absolute mess of ternary operators
+          double xCommand = (distToTag > desiredRadius) ? (targetPose.getX() - robotPose.getX() < 0 ? -1 : 1) * Math.abs(distToTag - desiredRadius) * 2 : (targetPose.getX() - robotPose.getX() < 0 ? -1 : 1) * -2 * Math.abs(distToTag - desiredRadius);
+          double yCommand = (distToTag > desiredRadius) ? (targetPose.getY() - robotPose.getY() < 0 ? -1 : 1) * Math.abs(distToTag - desiredRadius) * 2 : (targetPose.getY() - robotPose.getY() < 0 ? -1 : 1) * -2 * Math.abs(distToTag - desiredRadius);
           
           Rotation2d errorRot = Rotation2d.fromRadians(-Math.atan2(targetPose.getX() - robotPose.getX(), targetPose.getY() - robotPose.getY())).minus(Rotation2d.fromDegrees(90));
           Rotation2d command = errorRot.minus(robotPose.getRotation());
           // Commanded rotation based on the tag angle
-          double rotCommand = command.getDegrees() * 0.5f;
+          double rotCommand = command.getDegrees() * 0.2f;
   
           // x axis command
           xCommand = (xCommand < 0) ? 

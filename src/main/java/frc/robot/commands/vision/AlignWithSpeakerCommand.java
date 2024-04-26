@@ -34,7 +34,6 @@ public class AlignWithSpeakerCommand extends Command {
     @Override
     public void initialize() {
         // Set the drive mode
-        System.out.println("VISION START");
         driveSubsystem.setDriveMode(DriveModes.SPEAKERALIGN);
 
         Mechanism.getInstance().spinWheels(12).schedule();
@@ -57,13 +56,12 @@ public class AlignWithSpeakerCommand extends Command {
     // Called once the command ends or is interrupted
     @Override
     public void end(boolean interrupted) {
-        System.out.println("VISION END");
         Mechanism.getInstance().scoreSpeaker(12).schedule();
     }
 
     // Returns true when the command should end.
     @Override
     public boolean isFinished() {
-        return VisionUtils.alignWithTagRadial(endPosition, startPosition, endPositionOffset.getX()) == null || driveSubsystem.getDriveMode() != DriveModes.SPEAKERALIGN;
+        return (VisionUtils.alignWithTagRadial(endPosition, startPosition, endPositionOffset.getX()) == null && Mechanism.getInstance().isCharged()) || driveSubsystem.getDriveMode() != DriveModes.SPEAKERALIGN;
     }
 }

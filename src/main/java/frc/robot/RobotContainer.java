@@ -14,6 +14,7 @@ import frc.robot.Constants.ElevatorConstants.ElevatorPositions;
 import frc.robot.Constants.LEDConstants.LEDColor;
 import frc.robot.commands.CombinedCommands;
 import frc.robot.commands.HeadingLockDriveCommand;
+import frc.robot.commands.SpeakerTargetingCommand;
 import frc.robot.commands.TeleopDriveCommand;
 import frc.robot.commands.vision.AlignWithAmpCommand;
 import frc.robot.commands.vision.AlignWithSpeakerCommand;
@@ -133,8 +134,6 @@ public class RobotContainer {
     private void configureButtonBindingsDriver(boolean isRedAlliance) {
         final double invert = isRedAlliance ? -1 : 1;
 
-        // Brake command (Left Trigger)
-        this.m_driverController.leftTrigger().whileTrue(new RunCommand(() -> m_robotDrive.setX(),m_robotDrive));
         // Slow mode command (Left Bumper)
         this.m_driverController.leftBumper().onTrue(new InstantCommand(() -> m_robotDrive.setSlowMode(true), m_robotDrive));
         this.m_driverController.leftBumper().onFalse(new InstantCommand(() -> m_robotDrive.setSlowMode(false), m_robotDrive));
@@ -143,8 +142,12 @@ public class RobotContainer {
         this.m_driverController.rightBumper().onTrue(new InstantCommand(() -> m_robotDrive.setFastMode(true), m_robotDrive));
         this.m_driverController.rightBumper().onFalse(new InstantCommand(() -> m_robotDrive.setFastMode(false), m_robotDrive));
         
-        // Align with speaker
+        // Activate targeting
         this.m_driverController.rightTrigger().onTrue(
+            new SpeakerTargetingCommand(m_mechanism, m_robotDrive));
+
+        // Shoot directly at speaker
+        this.m_driverController.leftTrigger().whileTrue(
             new AlignWithSpeakerCommand(m_robotDrive));
 
         // Align with amp

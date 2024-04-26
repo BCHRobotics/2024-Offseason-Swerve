@@ -89,6 +89,8 @@ public class Drivetrain extends SubsystemBase {
 
   private DriveModes driveMode = DriveModes.MANUAL;
 
+  public boolean onTarget;
+
   // Odometry class for tracking robot pose
   SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(
       DriveConstants.kDriveKinematics,
@@ -116,7 +118,11 @@ public class Drivetrain extends SubsystemBase {
 
   @Override
   public void periodic() {
-    Mechanism.getInstance().shotLights(VisionUtils.isReadyToShoot(6, 0.5, 0.8, this.m_odometry.getPoseMeters().getRotation().getDegrees()));
+    if (speakerTargetPose != null) {
+      boolean shotPred = VisionUtils.isReadyToShoot(3.5, 0.546, 0.96, this.m_odometry.getPoseMeters().getRotation().minus(Rotation2d.fromDegrees(180)).getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
+      Mechanism.getInstance().shotLights(shotPred);
+      onTarget = shotPred;
+    }
 
     // Refresh the data gathered by the camera
     m_noteCamera.refreshResult();

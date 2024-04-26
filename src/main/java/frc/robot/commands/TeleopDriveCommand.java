@@ -36,6 +36,7 @@ public class TeleopDriveCommand extends Command {
     public void initialize() {
         // Set the drive mode
         driveSubsystem.setDriveMode(DriveModes.MANUAL);
+        System.out.println("MANUAL DRIVING ENGAGED");
     }
 
     // Called every time the scheduler runs while the command is scheduled.

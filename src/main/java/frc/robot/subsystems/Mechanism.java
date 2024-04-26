@@ -307,7 +307,7 @@ public class Mechanism extends SubsystemBase{
         .until(() -> this.checkState(Phase.NONE))
         .andThen(this.runOnce(() -> setWheelState(false)))
         .andThen(this.m_elevator.moveToPositionCommand(ElevatorPositions.INTAKE))
-        .beforeStarting(new WaitCommand(0.1))
+        .beforeStarting(new WaitCommand(0.4))
         .andThen(
             this.runOnce(
                 () -> {
@@ -323,6 +323,8 @@ public class Mechanism extends SubsystemBase{
      * @param speed the speed to run the wheels at in volts [0 --> 12]
      */
     public Command spinWheels(double speed) {
+        System.out.println("CHARGING SHOOTER...");
+
         if (!areWheelsCharged) {
             return this.runOnce(
             () -> {
@@ -383,6 +385,7 @@ public class Mechanism extends SubsystemBase{
      * A command for confirming that the wheels are charged
      */
     public Command readyToShoot() {
+        System.out.println("SHOOTER CHARGED");
         return Commands.runOnce(() -> this.powerLEDs(LEDColor.WHITE));
     }
 
