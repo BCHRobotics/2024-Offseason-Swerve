@@ -118,6 +118,8 @@ public class Drivetrain extends SubsystemBase {
 
   @Override
   public void periodic() {
+
+    // temporary code for storing trajectory predictions to be used by commands
     if (speakerTargetPose != null) {
       boolean shotPred = VisionUtils.isReadyToShoot(3.5, 0.546, 0.96, this.m_odometry.getPoseMeters().getRotation().minus(Rotation2d.fromDegrees(180)).getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
       Mechanism.getInstance().shotLights(shotPred);
@@ -156,63 +158,6 @@ public class Drivetrain extends SubsystemBase {
       speakerTargetPose = m_tagCamera.getApriltagPose(getPose(), this.m_odometry.getPoseMeters().getRotation().getDegrees(), desiredTagId, CameraMode.SPEAKER.getHeading(isRedAlliance));
     }
   }
-
-  /**
-   * The function to be called periodically in order to drive the robot,
-   * either with vision, heading lock, or manually
-   * @param xSpeed the x axis commanded speed [-1 -> 1]
-   * @param ySpeed the y axis commanded speed [-1 -> 1]
-   * @param rotSpeed the rotation axis commanded speed [-1 -> 1]
-   * @param fieldRelative whether to use robot relative (false) or field relative (true) driving
-   * @param rateLimit whether to use rate limiting
-   * @param noteLoaded whether there is a note loaded in the bot
-   */
-  // public void driveCommand(double xSpeed, double ySpeed, double rotSpeed, boolean fieldRelative, boolean rateLimit, boolean noteLoaded) {
-  //   if (!isAlignmentActive) {
-  //     // If there is an attempted rotation on the joystick, unlock the heading
-  //     if (Math.abs(rotSpeed) > 0.04) {
-  //       isHeadingLocked = false;
-  //     }
-
-  //     // If the heading is locked, turn the bot to the desired heading with a PID controller
-  //     if (isHeadingLocked) {
-  //       drive(xSpeed, ySpeed, headingController.calculate(getHeading(), lockHeadingAngle), fieldRelative, rateLimit);
-  //     }
-  //     else { // If not just use the joystick inputs
-  //       drive(xSpeed, ySpeed, rotSpeed, fieldRelative, rateLimit);
-  //     }
-  //   }
-  //   else { // If vision is enabled
-  //     // If the vision mode is set to look for notes
-  //     if (cameraMode == CameraMode.NOTE) {
-  //       // Align heading to the note using vision while driving forwards (only forwards)
-  //       drive(Math.sqrt(Math.pow(ySpeed, 2) + Math.pow(xSpeed, 2)), 0, rotSpeed + noteAlignmenController.calculate(m_noteCamera.getAngleError()), false, rateLimit);
-        
-  //       // When there is a note loaded, cancel the alignment command
-  //       if (noteLoaded) {
-  //         cancelAlign();
-  //       }
-  //     }
-
-  //     // Retrieve the target pose of either the amp or speaker depending on camera mode
-  //     Pose2d targetPose = cameraMode == CameraMode.AMP ? ampTargetPose : speakerTargetPose;
-  //     if ((cameraMode == CameraMode.AMP || cameraMode == CameraMode.SPEAKER) && targetPose != null) {
-  //       // Use alignWithTagExact() to construct a drive 
-  //       Transform2d alignCommand = VisionUtils.alignWithTagRadial(targetPose, getPose(), 
-  //                                                                 cameraMode.getOffsets()[0]);
-
-  //       if (alignCommand == null) {
-  //         isAlignmentSuccess = true;
-  //         isAlignmentActive = false;
-  //         setChassisSpeeds(new ChassisSpeeds(0, 0, 0));
-  //       }
-  //       else {
-  //         isAlignmentSuccess = false;
-  //         drive(alignCommand.getX(), alignCommand.getY(), alignCommand.getRotation().getDegrees(), true, true);
-  //       }
-  //     }
-  //   }
-  // }
 
   /**
    * Returns the currently-estimated pose of the robot.

@@ -12,8 +12,6 @@ import frc.robot.subsystems.Drivetrain;
 public class AlignWithNoteCommand extends Command {
     public Drivetrain driveSubsystem;
 
-    private double rotationSpeed;
-
     DoubleSupplier commandX;
     DoubleSupplier commandY;
     DoubleSupplier commandRot;
@@ -38,19 +36,17 @@ public class AlignWithNoteCommand extends Command {
         driveSubsystem.setDriveMode(DriveModes.NOTEALIGN);
     }
 
-    // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
+        // as of now this just drives the bot normally, will incorporate camera into this later
         driveSubsystem.drive(commandX.getAsDouble(), commandY.getAsDouble(), commandRot.getAsDouble(), isFieldRelative.getAsBoolean(), isRateLimited.getAsBoolean());
     }
 
-    // Called once the command ends or is interrupted
     @Override
     public void end(boolean interrupted) {
         new TeleopDriveCommand(commandY, commandX, commandRot, isFieldRelative, isRateLimited, driveSubsystem).schedule();
     }
 
-    // Returns true when the command should end.
     @Override
     public boolean isFinished() {
         return driveSubsystem.getDriveMode() != DriveModes.SPEAKERALIGN;

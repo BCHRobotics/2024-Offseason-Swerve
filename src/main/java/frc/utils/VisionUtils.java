@@ -14,8 +14,8 @@ public class VisionUtils {
      * A function that converts the supplied Transform2d in robot relative coordinates 
      * into a Transform2d in field relative coordinates 
      * (flips the output because the camera is on the back).
-     * @param objectTransform the transform of the object
-     * @param heading the heading of the robot
+     * @param objectTransform The transform of the object
+     * @param heading The heading of the robot
      * @return the transform of the object in field coordinates
      */
     public static Transform2d robotToField(Transform2d objectTransform, double heading) {
@@ -37,8 +37,8 @@ public class VisionUtils {
      * A function that converts the supplied Transform2d in tag relative coordinates
      * into a Transform2d in field relative coordinates (this is different from robotToField 
      * because it doesn't flip the output).
-     * @param objectTransform the transform of the object
-     * @param heading the heading of the robot
+     * @param objectTransform The transform of the object
+     * @param heading The heading of the robot
      * @return the transform of the object in field coordinates
      */
     public static Transform2d tagToField(Transform2d objectTransform, double heading) {
@@ -139,16 +139,25 @@ public class VisionUtils {
 
     }
 
+    //____________ Utility Functions ____________//
+
+    /**
+     * @param inputValue The value that will be capped
+     * @param cap The number the value should be capped to (+/-)
+     * @return
+     */
+    public static double capValue(double inputValue, double cap) {
+      return (inputValue < 0) ? 
+      Math.max(inputValue, -cap) :
+      Math.min(inputValue, cap);
+    }
+
     //_____________ Vision Profiles ____________//
 
     // an all-in-one function for generating vision commands (UNFINISHED)
     // maybe change the targetpose param to an int for tag id? + add visionprofile class
     public static Transform2d alignWithApriltag(Pose2d targetPose, Pose2d robotPose, Transform2d offset) {
       return null;
-    }
-
-    public static double capValue(double inputValue, double cap) {
-      return 0;
     }
 
     // no idea if this works yet
@@ -169,20 +178,14 @@ public class VisionUtils {
 
         double rotCommand = tagRotation.minus(robotRotation).getDegrees();
 
-        // x axis command
-        xCommand = (xCommand < 0) ? 
-        Math.max(xCommand, -VisionConstants.kVisionSpeedLimit) : 
-        Math.min(xCommand, VisionConstants.kVisionSpeedLimit);
+        // -- cap the values -- //
 
+        // x axis command
+        xCommand = capValue(rotCommand, VisionConstants.kVisionSpeedLimit);
         // y axis command
-        yCommand = (yCommand < 0) ? 
-        Math.max(yCommand, -VisionConstants.kVisionSpeedLimit) :
-        Math.min(yCommand, VisionConstants.kVisionSpeedLimit);
-        
+        yCommand = capValue(rotCommand, VisionConstants.kVisionSpeedLimit);
         // Rotational command
-        rotCommand = (rotCommand < 0) ? 
-        Math.max(rotCommand, -VisionConstants.kVisionTurningLimit) :
-        Math.min(rotCommand, VisionConstants.kVisionTurningLimit);
+        rotCommand = capValue(rotCommand, VisionConstants.kVisionTurningLimit);
 
         // Set the x command to full speed if far enough
         if (Math.abs(xCommand) > VisionConstants.kTagSlowdownDistance) {
@@ -222,10 +225,10 @@ public class VisionUtils {
 
     /**
      * A function for calculating a the movement towards a given apriltag's 
-     * exact position (USED FOR THE AMP)
-     * @param targetPose the pose of the apriltag
-     * @param robotPose the pose of the robot
-     * @param desiredOffset the desired offset from the apriltag
+     * EXACT POSITION plus an offset
+     * @param targetPose The (field relative) pose of the apriltag
+     * @param robotPose The (field relative) pose of the robot
+     * @param desiredOffset The desired x and y offset from the apriltag
      * @return
      */
     public static Transform2d alignWithTagExact(Pose2d targetPose, Pose2d robotPose, Transform2d desiredOffset) {
@@ -241,20 +244,14 @@ public class VisionUtils {
         // Commanded rotation
         double rotCommand = tagRotation.minus(robotRotation).getDegrees();
 
-        // x axis command
-        xCommand = (xCommand < 0) ? 
-        Math.max(xCommand, -VisionConstants.kVisionSpeedLimit) : 
-        Math.min(xCommand, VisionConstants.kVisionSpeedLimit);
+        // -- cap the values -- //
 
+        // x axis command
+        xCommand = capValue(rotCommand, VisionConstants.kVisionSpeedLimit);
         // y axis command
-        yCommand = (yCommand < 0) ? 
-        Math.max(yCommand, -VisionConstants.kVisionSpeedLimit) :
-        Math.min(yCommand, VisionConstants.kVisionSpeedLimit);
-        
+        yCommand = capValue(rotCommand, VisionConstants.kVisionSpeedLimit);
         // Rotational command
-        rotCommand = (rotCommand < 0) ? 
-        Math.max(rotCommand, -VisionConstants.kVisionTurningLimit) :
-        Math.min(rotCommand, VisionConstants.kVisionTurningLimit);
+        rotCommand = capValue(rotCommand, VisionConstants.kVisionTurningLimit);
 
         // Set the x command to full speed if far enough
         if (Math.abs(xCommand) > VisionConstants.kTagSlowdownDistance) {
@@ -293,73 +290,67 @@ public class VisionUtils {
     }
 
     /**
-     * A function for calculating a the movement towards a circle 
-     * defined by a given apriltag (USED FOR THE SPEAKER)
-     * @param targetPose the pose of the apriltag
-     * @param robotPose the pose of the robot
-     * @param desiredRadius how far you want to be from the target
+     * A function for calculating a the movement towards a 
+     * CIRCLE with a given apriltag at it's center
+     * @param targetPose The (field relative) pose of the apriltag
+     * @param robotPose The (field relative) pose of the robot
+     * @param desiredRadius The desired distance to the target apriltag
      * @return
      */
     public static Transform2d alignWithTagRadial(Pose2d targetPose, Pose2d robotPose, double desiredRadius) {
-        // Apriltag alignment code
-        if (targetPose != null) {
-          double distToTag = robotPose.getTranslation().getDistance(targetPose.getTranslation());
+      // Apriltag alignment code
+      if (targetPose != null) {
+        double distToTag = robotPose.getTranslation().getDistance(targetPose.getTranslation());
         
-          // Calculate the x and y commands, based on whether the robot should travel away or towards the tag
-          // this is an absolute mess of ternary operators
-          double xCommand = (distToTag > desiredRadius) ? (targetPose.getX() - robotPose.getX() < 0 ? -1 : 1) * Math.abs(distToTag - desiredRadius) * 2 : (targetPose.getX() - robotPose.getX() < 0 ? -1 : 1) * -2 * Math.abs(distToTag - desiredRadius);
-          double yCommand = (distToTag > desiredRadius) ? (targetPose.getY() - robotPose.getY() < 0 ? -1 : 1) * Math.abs(distToTag - desiredRadius) * 2 : (targetPose.getY() - robotPose.getY() < 0 ? -1 : 1) * -2 * Math.abs(distToTag - desiredRadius);
+        // Calculate the x and y commands, based on whether the robot should travel away or towards the tag
+        // this is an absolute mess of ternary operators
+        double xCommand = (distToTag > desiredRadius) ? (targetPose.getX() - robotPose.getX() < 0 ? -1 : 1) * Math.abs(distToTag - desiredRadius) * 2 : (targetPose.getX() - robotPose.getX() < 0 ? -1 : 1) * -2 * Math.abs(distToTag - desiredRadius);
+        double yCommand = (distToTag > desiredRadius) ? (targetPose.getY() - robotPose.getY() < 0 ? -1 : 1) * Math.abs(distToTag - desiredRadius) * 2 : (targetPose.getY() - robotPose.getY() < 0 ? -1 : 1) * -2 * Math.abs(distToTag - desiredRadius);
           
-          Rotation2d errorRot = Rotation2d.fromRadians(-Math.atan2(targetPose.getX() - robotPose.getX(), targetPose.getY() - robotPose.getY())).minus(Rotation2d.fromDegrees(90));
-          Rotation2d command = errorRot.minus(robotPose.getRotation());
-          // Commanded rotation based on the tag angle
-          double rotCommand = command.getDegrees() * 0.2f;
+        Rotation2d errorRot = Rotation2d.fromRadians(-Math.atan2(targetPose.getX() - robotPose.getX(), targetPose.getY() - robotPose.getY())).minus(Rotation2d.fromDegrees(90));
+        Rotation2d command = errorRot.minus(robotPose.getRotation());
+        // Commanded rotation based on the tag angle
+        double rotCommand = command.getDegrees() * 0.2f;
   
-          // x axis command
-          xCommand = (xCommand < 0) ? 
-          Math.max(xCommand, -VisionConstants.kVisionSpeedLimit) : 
-          Math.min(xCommand, VisionConstants.kVisionSpeedLimit);
-  
-          // y axis command
-          yCommand = (yCommand < 0) ? 
-          Math.max(yCommand, -VisionConstants.kVisionSpeedLimit) :
-          Math.min(yCommand, VisionConstants.kVisionSpeedLimit);
-          
-          // Rotational command
-          rotCommand = (rotCommand < 0) ? 
-          Math.max(rotCommand, -VisionConstants.kVisionTurningLimit) :
-          Math.min(rotCommand, VisionConstants.kVisionTurningLimit);
-  
-          // Set the x command to full speed if far enough
-          if (Math.abs(xCommand) > VisionConstants.kTagSlowdownDistance) {
-              xCommand = (xCommand < 0) ? 
-              -VisionConstants.kVisionSpeedLimit : 
-              VisionConstants.kVisionSpeedLimit;
-          }
-  
-          // Set the y command to full speed if far enough
-          if (Math.abs(yCommand) > VisionConstants.kTagSlowdownDistance) {
-              yCommand = (yCommand < 0) ? 
-              -VisionConstants.kVisionSpeedLimit : 
-              VisionConstants.kVisionSpeedLimit;
-          }
-  
-          // Check if robot is within acceptable boundaries
-          boolean rotFinished = Math.abs(command.getDegrees()) < VisionConstants.kTagRotationThreshold;
-          boolean posFinished = Math.abs(distToTag - desiredRadius) < VisionConstants.kTagDistanceThreshold;
-  
-          if (rotFinished) {rotCommand = 0;}
-          if (posFinished) {xCommand = 0; yCommand = 0;}
+        // -- cap the values -- //
 
-          if (rotFinished && posFinished) {
-            return null;
-          }
+        // x axis command
+        xCommand = capValue(rotCommand, VisionConstants.kVisionSpeedLimit);
+        // y axis command
+        yCommand = capValue(rotCommand, VisionConstants.kVisionSpeedLimit);
+        // Rotational command
+        rotCommand = capValue(rotCommand, VisionConstants.kVisionTurningLimit);
   
-          // TODO: Maybe get rid of the * 0.3?
-          return new Transform2d(xCommand, yCommand, Rotation2d.fromDegrees(rotCommand * 0.3));
+        // Set the x command to full speed if far enough
+        if (Math.abs(xCommand) > VisionConstants.kTagSlowdownDistance) {
+            xCommand = (xCommand < 0) ? 
+            -VisionConstants.kVisionSpeedLimit : 
+            VisionConstants.kVisionSpeedLimit;
         }
-        else {
+  
+        // Set the y command to full speed if far enough
+        if (Math.abs(yCommand) > VisionConstants.kTagSlowdownDistance) {
+            yCommand = (yCommand < 0) ? 
+            -VisionConstants.kVisionSpeedLimit : 
+            VisionConstants.kVisionSpeedLimit;
+        }
+  
+        // Check if robot is within acceptable boundaries
+        boolean rotFinished = Math.abs(command.getDegrees()) < VisionConstants.kTagRotationThreshold;
+        boolean posFinished = Math.abs(distToTag - desiredRadius) < VisionConstants.kTagDistanceThreshold;
+  
+        if (rotFinished) {rotCommand = 0;}
+        if (posFinished) {xCommand = 0; yCommand = 0;}
+
+        if (rotFinished && posFinished) {
           return null;
         }
+  
+        // TODO: Maybe get rid of the * 0.3?
+        return new Transform2d(xCommand, yCommand, Rotation2d.fromDegrees(rotCommand * 0.3));
+      }
+      else {
+        return null;
+      }
     }
   }

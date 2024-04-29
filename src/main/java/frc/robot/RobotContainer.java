@@ -12,12 +12,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.OIConstants;
 import frc.robot.Constants.ElevatorConstants.ElevatorPositions;
 import frc.robot.Constants.LEDConstants.LEDColor;
-import frc.robot.commands.CombinedCommands;
 import frc.robot.commands.HeadingLockDriveCommand;
-import frc.robot.commands.SpeakerTargetingCommand;
 import frc.robot.commands.TeleopDriveCommand;
-import frc.robot.commands.vision.AlignWithAmpCommand;
 import frc.robot.commands.vision.AlignWithSpeakerCommand;
+import frc.robot.commands.vision.SpeakerTargetingCommand;
 import frc.robot.Constants.DriveConstants.DriveModes;
 import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Elevator;
@@ -39,7 +37,6 @@ public class RobotContainer {
     private final Drivetrain m_robotDrive = new Drivetrain();
     private final Elevator m_elevator;
     private final Mechanism m_mechanism;
-    private final CombinedCommands m_combinedCommands = new CombinedCommands();
 
     // Flightstick controller
     //CommandJoystick m_driverFlightstickController = new CommandJoystick(OIConstants.kFlightstickPort);
@@ -75,36 +72,6 @@ public class RobotContainer {
             () -> OIConstants.kFieldRelative, () -> OIConstants.kRateLimited,
             m_robotDrive));
 
-        /* 
-         * CURRENT BUTTON LAYOUT (subject to change):
-         * 
-         * -- Driver Controller -- 
-         * 
-         * Y -- RESET GYRO
-         * LEFT TRIGGER -- BRAKE
-         * LEFT BUMPER -- TOGGLE SLOW MODE
-         * RIGHT TRIGGER -- ALIGN WITH SPEAKER
-         * X -- ALIGN WITH AMP
-         * B -- ALIGN WITH NOTE
-         * A -- CANCEL ALIGN
-         * POV UP, DOWN, LEFT, RIGHT -- HEADING LOCKS
-         * 
-         * -- Operator Controller --
-         * 
-         * POV UP -- ELEVATOR TO AMP
-         * POV RIGHT -- ELEVATOR TO SOURCE
-         * POV DOWN -- ELEVATOR TO GROUND
-         * LEFT BUMPER -- REQUEST GROUND INTAKE
-         * RIGHT BUMPER -- REQUEST SOURCE INTAKE
-         * POV LEFT -- SCORE SPEAKER (CHARGE WHEELS IF NOT CHARGED)
-         * B -- SCORE AMP 
-         * Y -- SOURCE INTAKE
-         * X -- GROUND INTAKE
-         * A -- CANCEL INTAKE
-         * LEFT TRIGGER -- RELEASE NOTE
-         * RIGHT TRIGGER -- CHARGE SPEAKER WHEELS
-         */
-
         configureButtonBindingsDriver(isRedAlliance);
         configureButtonBindingsOperator(isRedAlliance);
 
@@ -138,7 +105,7 @@ public class RobotContainer {
         this.m_driverController.leftBumper().onTrue(new InstantCommand(() -> m_robotDrive.setSlowMode(true), m_robotDrive));
         this.m_driverController.leftBumper().onFalse(new InstantCommand(() -> m_robotDrive.setSlowMode(false), m_robotDrive));
 
-        // Slow mode command (Right Bumper)
+        // Fast mode command (Right Bumper)
         this.m_driverController.rightBumper().onTrue(new InstantCommand(() -> m_robotDrive.setFastMode(true), m_robotDrive));
         this.m_driverController.rightBumper().onFalse(new InstantCommand(() -> m_robotDrive.setFastMode(false), m_robotDrive));
         
@@ -150,13 +117,14 @@ public class RobotContainer {
         this.m_driverController.leftTrigger().whileTrue(
             new AlignWithSpeakerCommand(m_robotDrive));
 
-        // Align with amp
-        this.m_driverController.x().onTrue(
-            new AlignWithAmpCommand(m_robotDrive));
+        // Ground intake
+        this.m_driverController.x().onTrue(this.m_mechanism.groundIntake(12));
+        // Stop the mech
+        this.m_driverController.b().onTrue(this.m_mechanism.stopMechanism());
 
         // Reset Gyro
         this.m_driverController.y().onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading()));
-        // Cancel Alignment
+        // Set drive mode to manual (cancel vision)
         this.m_driverController.a().onTrue(new InstantCommand(() -> m_robotDrive.setDriveMode(DriveModes.MANUAL)));
 
         // Lock heading to amp direction
@@ -174,30 +142,32 @@ public class RobotContainer {
      * Binding for operator xbox controller buttons
      */
     private void configureButtonBindingsOperator(boolean isRedAlliance) {
+        // -- no operator controls because working with 2 controllers is annoying -- //
+
         // Moving the elevator
-        this.m_operatorController.povUp().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.AMP));
-        this.m_operatorController.povRight().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.SOURCE));
-        this.m_operatorController.povDown().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.INTAKE));
+        // this.m_operatorController.povUp().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.AMP));
+        // this.m_operatorController.povRight().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.SOURCE));
+        // this.m_operatorController.povDown().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.INTAKE));
         // Request intake (ground and source)
-        this.m_operatorController.leftBumper().onTrue(new InstantCommand(() -> m_mechanism.requestIntake(1)));
-        this.m_operatorController.rightBumper().onTrue(new InstantCommand(() -> m_mechanism.requestIntake(2)));
+        // this.m_operatorController.leftBumper().onTrue(new InstantCommand(() -> m_mechanism.requestIntake(1)));
+        // this.m_operatorController.rightBumper().onTrue(new InstantCommand(() -> m_mechanism.requestIntake(2)));
        
-        // Cancel command
-        this.m_operatorController.a().onTrue(this.m_mechanism.stopMechanism());
-        // Intaking from source
-        this.m_operatorController.y().onTrue(this.m_combinedCommands.pickupFromSource());
-        // Intaking from ground
-        this.m_operatorController.x().onTrue(this.m_mechanism.groundIntake(12));
-        // Scoring into amp
-        this.m_operatorController.b().onTrue(m_mechanism.scoreAmp(6));
+        // // Cancel command
+        // this.m_operatorController.a().onTrue(this.m_mechanism.stopMechanism());
+        // // Intaking from source
+        // this.m_operatorController.y().onTrue(this.m_combinedCommands.pickupFromSource());
+        // // Intaking from ground
+        // this.m_operatorController.x().onTrue(this.m_mechanism.groundIntake(12));
+        // // Scoring into amp
+        // this.m_operatorController.b().onTrue(m_mechanism.scoreAmp(6));
 
-        // Speaker score
-        this.m_operatorController.povLeft().onTrue(new RunCommand(() -> this.m_mechanism.spinWheels(12)).until(() -> this.m_mechanism.isCharged()).andThen(this.m_mechanism.scoreSpeaker(12)));
-        // Release note onto floor
-        this.m_operatorController.leftTrigger().onTrue(this.m_mechanism.groundReleaseAuto(12));
+        // // Speaker score
+        // this.m_operatorController.povLeft().onTrue(new RunCommand(() -> this.m_mechanism.spinWheels(12)).until(() -> this.m_mechanism.isCharged()).andThen(this.m_mechanism.scoreSpeaker(12)));
+        // // Release note onto floor
+        // this.m_operatorController.leftTrigger().onTrue(this.m_mechanism.groundReleaseAuto(12));
 
-        // Spin up the speaker wheels
-        this.m_operatorController.rightTrigger().onTrue(this.m_mechanism.spinWheels(12));
+        // // Spin up the speaker wheels
+        // this.m_operatorController.rightTrigger().onTrue(this.m_mechanism.spinWheels(12));
     }
 
     /**

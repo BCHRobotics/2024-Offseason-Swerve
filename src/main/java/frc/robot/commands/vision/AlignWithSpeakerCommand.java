@@ -11,7 +11,10 @@ import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Mechanism;
 import frc.utils.VisionUtils;
 
-// UNTESTED
+/*
+ * Command that points towards the speaker and lines up with it, then shoots
+ * Uses the radial vision profile to accomplish this
+ */
 public class AlignWithSpeakerCommand extends Command {
     public Drivetrain driveSubsystem;
 
@@ -33,13 +36,12 @@ public class AlignWithSpeakerCommand extends Command {
 
     @Override
     public void initialize() {
-        // Set the drive mode
+        // Set the drive mode to speaker alignment
         driveSubsystem.setDriveMode(DriveModes.SPEAKERALIGN);
 
         Mechanism.getInstance().spinWheels(12).schedule();
     }
 
-    // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
         startPosition = driveSubsystem.getPose();
@@ -53,15 +55,16 @@ public class AlignWithSpeakerCommand extends Command {
         driveSubsystem.drive(driveVector.getX(), driveVector.getY(), driveVector.getRotation().getDegrees(), true, true);
     }
 
-    // Called once the command ends or is interrupted
     @Override
     public void end(boolean interrupted) {
-        Mechanism.getInstance().scoreSpeaker(12).schedule();
+        if (driveSubsystem.getDriveMode() == DriveModes.SPEAKERALIGN) {
+            Mechanism.getInstance().scoreSpeaker(12).schedule();
+        }
     }
 
-    // Returns true when the command should end.
     @Override
     public boolean isFinished() {
+        // End if the bot is lined up and ready to shoot, or if the driver cancels vision mode
         return (VisionUtils.alignWithTagRadial(endPosition, startPosition, endPositionOffset.getX()) == null && Mechanism.getInstance().isCharged()) || driveSubsystem.getDriveMode() != DriveModes.SPEAKERALIGN;
     }
 }
