@@ -1,7 +1,8 @@
 package frc.robot.commands.vision;
 
+import java.util.function.BooleanSupplier;
+
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Mechanism;
 
 /*
@@ -11,14 +12,11 @@ import frc.robot.subsystems.Mechanism;
  */
 public class SpeakerTargetingCommand extends Command{
     Mechanism mechSubsystem;
-    Drivetrain driveSubsystem;
+    BooleanSupplier shotReady;
 
-    public SpeakerTargetingCommand(Mechanism mech, Drivetrain drive) {
+    public SpeakerTargetingCommand(Mechanism mech, BooleanSupplier canShoot) {
         mechSubsystem = mech;
-        driveSubsystem = drive;
-
-        addRequirements(driveSubsystem);
-        addRequirements(mechSubsystem);
+        shotReady = canShoot;
     }
 
     @Override
@@ -42,7 +40,6 @@ public class SpeakerTargetingCommand extends Command{
 
     @Override
     public boolean isFinished() {
-        // End the command if the wheels are charged and the shot will hit the speaker
-        return (mechSubsystem.isCharged() && driveSubsystem.onTarget);
+        return (mechSubsystem.isCharged() && shotReady.getAsBoolean());
     }
 }

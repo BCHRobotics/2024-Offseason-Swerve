@@ -121,14 +121,19 @@ public class Drivetrain extends SubsystemBase {
 
     // temporary code for storing trajectory predictions to be used by commands
     if (speakerTargetPose != null) {
-      boolean shotPred = VisionUtils.isReadyToShoot(3.5, 0.546, 0.96, this.m_odometry.getPoseMeters().getRotation().minus(Rotation2d.fromDegrees(180)).getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
+      boolean shotPred = VisionUtils.isReadyToShoot(3.2, 0.546, 0.96, this.m_odometry.getPoseMeters().getRotation().minus(Rotation2d.fromDegrees(180)).getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
       Mechanism.getInstance().shotLights(shotPred);
       onTarget = shotPred;
+    }
+    else {
+      onTarget = false;
     }
 
     // Refresh the data gathered by the camera
     m_noteCamera.refreshResult();
     m_tagCamera.refreshResult();
+
+    SmartDashboard.putBoolean("TARGET AQUIRED", onTarget);
 
     // Set the max speed of the bot
     setSpeedPercent();

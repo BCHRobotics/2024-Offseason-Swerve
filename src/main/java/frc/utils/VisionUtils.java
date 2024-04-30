@@ -64,7 +64,7 @@ public class VisionUtils {
      * @param shootAngle The vertical angle of the shooter (radians)
      * @param robotHeading The horizontal angle of the shooter, usually robotHeading (deg)
      * @param targetPose The 2d field-relative position of the target, which isn't what you think it is (meters x and y)
-     * @param robotPose The pose of the robot (meters)
+     * @param robotPose The pose of the robot (meters x and y)
      * @return
      */
     public static boolean isReadyToShoot(double vi, double h, double shootAngle, double robotHeading, Pose2d targetPose, Pose2d robotPose, double xv, double yv) {
@@ -91,10 +91,10 @@ public class VisionUtils {
 
       // Where is the speaker (bounds in meters)
       // Only works for red alliance rn
-      double minX = targetPose.getX() - robotPose.getX() - 0.25;
-      double maxX = targetPose.getX() - robotPose.getX() - 0.05;
-      double minY = targetPose.getY() - robotPose.getY() - 0.4;
-      double maxY = targetPose.getY() - robotPose.getY() + 0.4;
+      double minX = targetPose.getX() - robotPose.getX() - 0.35;
+      double maxX = targetPose.getX() - robotPose.getX() + 0.05;
+      double minY = targetPose.getY() - robotPose.getY() - 0.5;
+      double maxY = targetPose.getY() - robotPose.getY() + 0.5;
 
       // check if there are possible solutions
       if (discriminantX > 0 || discriminantY > 0) {

@@ -90,7 +90,7 @@ public class Mechanism extends SubsystemBase{
     /**
      * updates the phase of the beam break sensor
      */
-    private void updatePhase() {
+    public void updatePhase() {
         this.m_beamBreak.updatePhase();
         this.m_currentPhase = this.m_beamBreak.getPhase();
     }
@@ -99,7 +99,7 @@ public class Mechanism extends SubsystemBase{
      * Sets the speed of the belt motor
      * @param speed the speed in volts [0 --> 12]
      */
-    private void setBeltSpeed(double speed) {
+    public void setBeltSpeed(double speed) {
         this.m_bottomBeltMotor.setVoltage(speed);
         this.m_topBeltMotor.setVoltage(speed);
     }
@@ -108,7 +108,7 @@ public class Mechanism extends SubsystemBase{
      * Sets the speed of the source motor
      * @param speed the speed in volts [0 --> 12]
      */
-    private void setSourceSpeed(double speed) {
+    public void setSourceSpeed(double speed) {
         this.m_sourceMotor.setVoltage(speed);
     }
     
@@ -116,7 +116,7 @@ public class Mechanism extends SubsystemBase{
      * Sets the speed of the amp motor
      * @param speed the speed in volts [0 --> 12]
      */
-    private void setAmpSpeed(double speed) {
+    public void setAmpSpeed(double speed) {
         this.m_ampMotor.setVoltage(speed);
     }
 

@@ -62,6 +62,7 @@ public class RobotContainer {
         SmartDashboard.putData("Auto Chooser", autoChooser);
     }
 
+    // Sets up the drivetrain for teleoperated driving
     public void configureDriveMode(boolean isRedAlliance) {
         final double invert = isRedAlliance ? -1 : 1;
         
@@ -111,7 +112,7 @@ public class RobotContainer {
         
         // Activate targeting
         this.m_driverController.rightTrigger().onTrue(
-            new SpeakerTargetingCommand(m_mechanism, m_robotDrive));
+            new SpeakerTargetingCommand(m_mechanism, () -> m_robotDrive.onTarget));
 
         // Shoot directly at speaker
         this.m_driverController.leftTrigger().whileTrue(
