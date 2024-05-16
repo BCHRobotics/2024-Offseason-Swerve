@@ -15,7 +15,7 @@ public class VisionUtils {
      * into a Transform2d in field relative coordinates 
      * (flips the output because the camera is on the back).
      * @param objectTransform The transform of the object
-     * @param heading The heading of the robot
+     * @param heading The heading of the robot (degrees)
      * @return the transform of the object in field coordinates
      */
     public static Transform2d robotToField(Transform2d objectTransform, double heading) {
@@ -38,7 +38,7 @@ public class VisionUtils {
      * into a Transform2d in field relative coordinates (this is different from robotToField 
      * because it doesn't flip the output).
      * @param objectTransform The transform of the object
-     * @param heading The heading of the robot
+     * @param heading The heading of the robot (degrees)
      * @return the transform of the object in field coordinates
      */
     public static Transform2d tagToField(Transform2d objectTransform, double heading) {
@@ -79,61 +79,74 @@ public class VisionUtils {
       double g = 9.81;
 
       // Height of the target (speaker)
-      double th = 1.98;
+      // double th = 2.1;
+      double th = 0;
 
       // a values for the parabolas
       double ax = g / (2 * Math.pow(Math.sqrt(Math.pow(initialVelocityFieldRelative.getX(), 2) + Math.pow(initialVelocityUp, 2)), 2) * Math.pow(Math.cos(Math.atan(initialVelocityUp / initialVelocityFieldRelative.getX())), 2));
       double ay = g / (2 * Math.pow(Math.sqrt(Math.pow(initialVelocityFieldRelative.getY(), 2) + Math.pow(initialVelocityUp, 2)), 2) * Math.pow(Math.cos(Math.atan(initialVelocityUp / initialVelocityFieldRelative.getY())), 2));
 
       // discriminants
-      double discriminantX = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getX(), 2) - 4 * ax * (h - th));
-      double discriminantY = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getY(), 2) - 4 * ay * (h - th));
+      double discriminantX = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getX(), 2) - 4 * -ax * (h - th));
+      double discriminantY = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getY(), 2) - 4 * -ay * (h - th));
 
       // Where is the speaker (bounds in meters)
       // Only works for red alliance rn
-      double minX = targetPose.getX() - robotPose.getX() - 0.35;
-      double maxX = targetPose.getX() - robotPose.getX() + 0.05;
-      double minY = targetPose.getY() - robotPose.getY() - 0.5;
-      double maxY = targetPose.getY() - robotPose.getY() + 0.5;
+      // double minX = targetPose.getX() - robotPose.getX() - 0.2;
+      // double maxX = targetPose.getX() - robotPose.getX() + 0.05;
+      // double minY = targetPose.getY() - robotPose.getY() - 0.5;
+      // double maxY = targetPose.getY() - robotPose.getY() + 0.5;
+
+      // Where is (0, 0) on the floor
+      double minX = -robotPose.getX() - 0.2;
+      double maxX = -robotPose.getX() + 0.2;
+      double minY = -robotPose.getY() - 0.2;
+      double maxY = -robotPose.getY() + 0.2;
 
       // check if there are possible solutions
+      // Recall for parabolas:
+      // <0 means no solutions (success)
+      // 0 means one solution (fail)
+      // >0 means two solutions (success)
       if (discriminantX > 0 || discriminantY > 0) {
-        double xval1 = (initialVelocityUp / initialVelocityFieldRelative.getX() * -1 + discriminantX) / (2 * ax);
-        double xval2 = (initialVelocityUp / initialVelocityFieldRelative.getX() * -1 - discriminantX) / (2 * ax);
+        double xval1 = (initialVelocityUp / initialVelocityFieldRelative.getX() * -1 + discriminantX) / (2 * -ax);
+        double xval2 = (initialVelocityUp / initialVelocityFieldRelative.getX() * -1 - discriminantX) / (2 * -ax);
 
-        double yval1 = (initialVelocityUp / initialVelocityFieldRelative.getY() * -1 + discriminantY) / (2 * ay);
-        double yval2 = (initialVelocityUp / initialVelocityFieldRelative.getY() * -1 - discriminantY) / (2 * ay);
+        double yval1 = (initialVelocityUp / initialVelocityFieldRelative.getY() * -1 + discriminantY) / (2 * -ay);
+        double yval2 = (initialVelocityUp / initialVelocityFieldRelative.getY() * -1 - discriminantY) / (2 * -ay);
 
         double xval;
         double yval;
 
         // all this logic to take the closest to 0 out of x and y values
         if (initialVelocityFieldRelative.getX() < 0) {
-          xval = xval1 > xval2 ? xval1 : xval2;
+          xval = xval1 > xval2 ? xval2 : xval1;
         }
         else {
-          xval = xval1 > xval2 ? xval2 : xval1;
+          xval = xval1 > xval2 ? xval1 : xval2;
         }
 
         if (initialVelocityFieldRelative.getY() < 0) {
-          yval = yval1 > yval2 ? yval1 : yval2;
+          yval = yval1 > yval2 ? yval2 : yval1;
         }
         else {
-          yval = yval1 > yval2 ? yval2 : yval1;
+          yval = yval1 > yval2 ? yval1 : yval2;
         }
 
         if (xval < maxX && xval > minX && yval < maxY && yval > minY) {
           return true;
         }
         else {
-          SmartDashboard.putNumber("Shooting Status X", xval);
-          SmartDashboard.putNumber("Shooting Status Y", yval);
+          SmartDashboard.putNumber("X1", robotPose.getX() + xval1);
+          SmartDashboard.putNumber("Y1", robotPose.getY() + yval1);
+          SmartDashboard.putNumber("X2", robotPose.getX() + xval2);
+          SmartDashboard.putNumber("Y2", robotPose.getY() + yval2);
           return false;
         }
       }
-      else {
-        SmartDashboard.putNumber("Shooting Status X", 0);
-        SmartDashboard.putNumber("Shooting Status Y", 0);
+      else { // At least one discriminant fails
+        SmartDashboard.putNumber("Shooting Status X", -1);
+        SmartDashboard.putNumber("Shooting Status Y", -1);
         return false;
       }
 

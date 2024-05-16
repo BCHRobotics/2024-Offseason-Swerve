@@ -118,22 +118,24 @@ public class Drivetrain extends SubsystemBase {
 
   @Override
   public void periodic() {
-
     // temporary code for storing trajectory predictions to be used by commands
-    if (speakerTargetPose != null) {
-      boolean shotPred = VisionUtils.isReadyToShoot(3.2, 0.546, 0.96, this.m_odometry.getPoseMeters().getRotation().minus(Rotation2d.fromDegrees(180)).getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
-      Mechanism.getInstance().shotLights(shotPred);
-      onTarget = shotPred;
-    }
-    else {
-      onTarget = false;
-    }
+    // if (speakerTargetPose != null) {
+    //   boolean shotPred = VisionUtils.isReadyToShoot(4, 0.546, 1, this.m_odometry.getPoseMeters().getRotation().minus(Rotation2d.fromDegrees(180)).getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
+    //   Mechanism.getInstance().shotLights(shotPred);
+    //   onTarget = shotPred;
+    // }
+    // else {
+    //   onTarget = false;
+    // }
+
+    boolean shotPred = VisionUtils.isReadyToShoot(6.6, 0.5, 0.95, this.m_odometry.getPoseMeters().getRotation().getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
+    Mechanism.getInstance().shotLights(shotPred);
+    onTarget = shotPred;
+    SmartDashboard.putBoolean("TARGET AQUIRED", onTarget);
 
     // Refresh the data gathered by the camera
     m_noteCamera.refreshResult();
     m_tagCamera.refreshResult();
-
-    SmartDashboard.putBoolean("TARGET AQUIRED", onTarget);
 
     // Set the max speed of the bot
     setSpeedPercent();
@@ -360,7 +362,8 @@ public class Drivetrain extends SubsystemBase {
   /** Zeroes the heading of the robot. */
   public void zeroHeading() {
     m_gyro.reset();
-    resetOdometry(new Pose2d(getPose().getX(), getPose().getY(), new Rotation2d()));
+    // Change this after
+    resetOdometry(new Pose2d(0, 0, new Rotation2d()));
   }
 
   /**
@@ -464,8 +467,8 @@ public class Drivetrain extends SubsystemBase {
     SmartDashboard.putNumber("Current Speed Percentage", m_maxSpeed); // Commanded speed multiplier [0 --> 1]
 
     // Position
-    // SmartDashboard.putNumber("X Position", this.getPose().getX());
-    // SmartDashboard.putNumber("Y Position", this.getPose().getY());
+    SmartDashboard.putNumber("X Position", this.getPose().getX());
+    SmartDashboard.putNumber("Y Position", this.getPose().getY());
     // SmartDashboard.putNumber("Gyro Heading: ", this.getHeading());
     SmartDashboard.putNumber("Odometry Heading: ", this.m_odometry.getPoseMeters().getRotation().getDegrees());
 

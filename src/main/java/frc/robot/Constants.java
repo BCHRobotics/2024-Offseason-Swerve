@@ -173,7 +173,9 @@ public final class Constants {
   public static final class VisionConstants{
     public enum VisionProfile {
       EXACT,
-      RADIAL
+      RADIAL,
+      TANGENT,
+      LINEUP
     }
 
     // Camera modes, with their respective desired offsets
