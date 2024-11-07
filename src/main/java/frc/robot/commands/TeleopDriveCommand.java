@@ -47,6 +47,12 @@ public class TeleopDriveCommand extends Command {
 
     @Override
     public void end(boolean interrupted) {
+        if (interrupted) {
+            System.out.println("INTERRUPT!");
+        }
+        else {
+            System.out.println("MANUAL DRIVING OFF");
+        }
     }
 
     @Override

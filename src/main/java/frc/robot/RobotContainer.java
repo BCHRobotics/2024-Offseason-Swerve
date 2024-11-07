@@ -13,9 +13,12 @@ import frc.robot.Constants.OIConstants;
 import frc.robot.Constants.ElevatorConstants.ElevatorPositions;
 import frc.robot.Constants.LEDConstants.LEDColor;
 import frc.robot.commands.HeadingLockDriveCommand;
+import frc.robot.commands.CombinedCommands;
 import frc.robot.commands.TeleopDriveCommand;
 import frc.robot.commands.vision.AlignWithSpeakerCommand;
+import frc.robot.commands.vision.AlignWithAmpCommand;
 import frc.robot.commands.vision.SpeakerTargetingCommand;
+import frc.robot.commands.mechanism.DirectSpeakerShoot;
 import frc.robot.Constants.DriveConstants.DriveModes;
 import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Elevator;
@@ -44,6 +47,8 @@ public class RobotContainer {
     CommandXboxController m_driverController = new CommandXboxController(OIConstants.kDrivingControllerXBoxPort);
     // Operator controller
     CommandXboxController m_operatorController = new CommandXboxController(OIConstants.kOperatingControllerXBoxPort);
+    // A set of commands that do multiple things at once (raise elevator, then shoot)
+    CombinedCommands m_combinedCommands = new CombinedCommands();
 
     // The auto chooser
     private final SendableChooser<Command> autoChooser;
@@ -66,16 +71,21 @@ public class RobotContainer {
     public void configureDriveMode(boolean isRedAlliance) {
         final double invert = isRedAlliance ? -1 : 1;
         
+        // If no other command is running on the drivetrain, then this manual driving command (driving via controller) is used
         m_robotDrive.setDefaultCommand(new TeleopDriveCommand(
             () -> -m_driverController.getLeftY() * invert,
             () -> -m_driverController.getLeftX() * invert,
             () -> -m_driverController.getRightX(),
             () -> OIConstants.kFieldRelative, () -> OIConstants.kRateLimited,
             m_robotDrive));
-
+        
+        // Setup the commands associated with all buttons on the controller
+        // Driver controller
         configureButtonBindingsDriver(isRedAlliance);
+        // Operator controller
         configureButtonBindingsOperator(isRedAlliance);
 
+        // Set the alliance to either red or blue (to invert controls if necessary)
         m_robotDrive.setAlliance(isRedAlliance);
     }
 
@@ -84,6 +94,7 @@ public class RobotContainer {
      * (used during autos)
      */
     public void configureNamedCommands() {
+        // Enabling and disabling note vision in auto
         NamedCommands.registerCommand("ALIGN NOTE", new InstantCommand(() -> m_robotDrive.autoVision(true)));
         NamedCommands.registerCommand("CANCEL ALIGN", new InstantCommand(() -> m_robotDrive.autoVision(false)));
 
@@ -98,45 +109,61 @@ public class RobotContainer {
 
     /**
      * Binding for driver xbox controller buttons
+     * 
+     * NOTE - Things are configured for the SHSM event, vision is (ofc) not being used for this
      */
     private void configureButtonBindingsDriver(boolean isRedAlliance) {
         final double invert = isRedAlliance ? -1 : 1;
 
+        // NOTE FOR SLOW/FAST MODE COMMANDS
+        // These commands don't have requirements else they interrupt the drive command (TeleopDriveCommand)
+
         // Slow mode command (Left Bumper)
-        this.m_driverController.leftBumper().onTrue(new InstantCommand(() -> m_robotDrive.setSlowMode(true), m_robotDrive));
-        this.m_driverController.leftBumper().onFalse(new InstantCommand(() -> m_robotDrive.setSlowMode(false), m_robotDrive));
+        this.m_driverController.leftBumper().onTrue(new InstantCommand(() -> m_robotDrive.setSlowMode(true)));
+        this.m_driverController.leftBumper().onFalse(new InstantCommand(() -> m_robotDrive.setSlowMode(false)));
 
         // Fast mode command (Right Bumper)
-        this.m_driverController.rightBumper().onTrue(new InstantCommand(() -> m_robotDrive.setFastMode(true), m_robotDrive));
-        this.m_driverController.rightBumper().onFalse(new InstantCommand(() -> m_robotDrive.setFastMode(false), m_robotDrive));
+        this.m_driverController.rightBumper().onTrue(new InstantCommand(() -> m_robotDrive.setFastMode(true)));
+        this.m_driverController.rightBumper().onFalse(new InstantCommand(() -> m_robotDrive.setFastMode(false)));
         
-        // Activate targeting
+        // Activate targeting  (not used rn)
         this.m_driverController.rightTrigger().onTrue(
-            new SpeakerTargetingCommand(m_mechanism, () -> m_robotDrive.onTarget));
+            new AlignWithAmpCommand(m_robotDrive));
 
-        // Shoot directly at speaker
-        this.m_driverController.leftTrigger().whileTrue(
-            new AlignWithSpeakerCommand(m_robotDrive));
+        // Shoot directly at speaker (not used rn)
+        // this.m_driverController.leftTrigger().whileTrue(
+        //     new AlignWithSpeakerCommand(m_robotDrive));
+        this.m_driverController.leftTrigger().onTrue(
+            new DirectSpeakerShoot(m_robotDrive));
 
         // Ground intake
         this.m_driverController.x().onTrue(this.m_mechanism.groundIntake(12));
         // Stop the mech
         this.m_driverController.b().onTrue(this.m_mechanism.stopMechanism());
+        // Scoring into amp
+        this.m_driverController.a().onTrue(m_mechanism.scoreAmp(6));
+        // Intaking from source
+        this.m_driverController.povLeft().onTrue(this.m_combinedCommands.pickupFromSource());
 
         // Reset Gyro
         this.m_driverController.y().onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading()));
-        // Set drive mode to manual (cancel vision)
-        this.m_driverController.a().onTrue(new InstantCommand(() -> m_robotDrive.setDriveMode(DriveModes.MANUAL)));
+        // // Set drive mode to manual (cancel vision) (not used rn)
+        // this.m_driverController.a().onTrue(new InstantCommand(() -> m_robotDrive.setDriveMode(DriveModes.MANUAL)));
 
-        // Lock heading to amp direction
-        this.m_driverController.povLeft().onTrue(
-            new HeadingLockDriveCommand(
-            () -> -m_driverController.getLeftY() * invert,
-            () -> -m_driverController.getLeftX() * invert,
-            () -> -m_driverController.getRightX(),
-            () -> OIConstants.kFieldRelative, 
-            () -> OIConstants.kRateLimited,
-            m_robotDrive));
+        // Moving the elevator (TO BE TESTED)
+        this.m_driverController.povUp().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.AMP));
+        this.m_driverController.povRight().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.SOURCE));
+        this.m_driverController.povDown().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.INTAKE));
+
+        // Lock heading to amp direction (not used rn)
+        // this.m_driverController.povLeft().onTrue(
+        //     new HeadingLockDriveCommand(
+        //     () -> -m_driverController.getLeftY() * invert,
+        //     () -> -m_driverController.getLeftX() * invert,
+        //     () -> -m_driverController.getRightX(),
+        //     () -> OIConstants.kFieldRelative, 
+        //     () -> OIConstants.kRateLimited,
+        //     m_robotDrive));
     }
 
     /**
@@ -145,10 +172,6 @@ public class RobotContainer {
     private void configureButtonBindingsOperator(boolean isRedAlliance) {
         // -- no operator controls because working with 2 controllers is annoying -- //
 
-        // Moving the elevator
-        // this.m_operatorController.povUp().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.AMP));
-        // this.m_operatorController.povRight().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.SOURCE));
-        // this.m_operatorController.povDown().onTrue(this.m_elevator.moveToPositionCommand(ElevatorPositions.INTAKE));
         // Request intake (ground and source)
         // this.m_operatorController.leftBumper().onTrue(new InstantCommand(() -> m_mechanism.requestIntake(1)));
         // this.m_operatorController.rightBumper().onTrue(new InstantCommand(() -> m_mechanism.requestIntake(2)));

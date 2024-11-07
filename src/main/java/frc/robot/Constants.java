@@ -36,9 +36,9 @@ public final class Constants {
 
     // Driving Parameters - Note that these are not the maximum and minimum capable speeds of
     // the robot, rather the allowed maximum and minimum speeds.
-    public static final double kMaxSpeedMetersPerSecond = 4.1;
-    public static final double a = 3.3;
-    public static final double kMinSpeedMetersPerSecond = 1.6;
+    public static final double kMaxSpeedMetersPerSecond = 3.3; // 4.1
+    public static final double a = 1.6; // 3.3
+    public static final double kMinSpeedMetersPerSecond = 0.9; // 1.6
     public static final double kMaxAngularSpeed = 2 * Math.PI; // radians per second
 
     public static final double kDirectionSlewRate = 1.2; // radians per second
@@ -182,7 +182,6 @@ public final class Constants {
     // TODO: implement apriltag ids into this system
     public enum CameraMode {
       NONE(new double[]{0, 0}, 0, 0), // values aren't used here
-      NOTE(new double[]{0, 0}, 0, 0), // values aren't used here
       AMP(new double[]{0.61, 0}, -90, -90),
       SPEAKER(new double[]{2.05, 0}, 0, 180);
 
@@ -230,13 +229,13 @@ public final class Constants {
     }
 
     // Speed and rotation caps for vision
-    public static final double kVisionSpeedLimit = 0.2; //0.4
+    public static final double kVisionSpeedLimit = 0.1; //0.4
     public static final double kVisionTurningLimit = 0.8;  //0.4
 
     // How close to an apriltag the robot has to be before stopping (meters)
-    public static final double kTagDistanceThreshold = 0.02;
+    public static final double kTagDistanceThreshold = 0.06;
     // The amount of rotational error alowed (degrees)
-    public static final double kTagRotationThreshold = 6;
+    public static final double kTagRotationThreshold = 10;
     // How far away the bot is before it starts slowing down (farther than this it goes full speed as defined by kVisionSpeedLimit)
     public static final double kTagSlowdownDistance = 0.8;
 

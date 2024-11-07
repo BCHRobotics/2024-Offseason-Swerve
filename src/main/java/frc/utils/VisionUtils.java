@@ -6,6 +6,8 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.VisionConstants;
 
+// A class with a bunch of assorted vision functions
+// Everything from rotation matrix stuff to vision profiles to gamepiece tracking
 public class VisionUtils {
 
     //_____________ Coordinate Conversion Functions ____________//
@@ -68,10 +70,15 @@ public class VisionUtils {
      * @return
      */
     public static boolean isReadyToShoot(double vi, double h, double shootAngle, double robotHeading, Pose2d targetPose, Pose2d robotPose, double xv, double yv) {
+      // Shift the robot pose based on velocity
+      robotPose = robotPose.plus(new Transform2d(xv * 0.5, yv * 0.5, new Rotation2d()));
+
+      // Separating the initial velocity into up and forward components
       double initialVelocityScalar = vi;
       double initialVelocityUp = initialVelocityScalar * Math.sin(shootAngle);
       double initialVelocityForward = initialVelocityScalar * Math.cos(shootAngle);
 
+      // Apply a rotation matrix to the velocity using the robot heading to split it into x and y
       Transform2d initialShootVelocity = robotToField(new Transform2d(initialVelocityForward, 0, new Rotation2d()), robotHeading);
       Transform2d initialVelocityFieldRelative = new Transform2d(initialShootVelocity.getX() + xv, initialShootVelocity.getY() + yv, new Rotation2d());
 
@@ -80,7 +87,7 @@ public class VisionUtils {
 
       // Height of the target (speaker)
       // double th = 2.1;
-      double th = 0;
+      double th = 2.1;
 
       // a values for the parabolas
       double ax = g / (2 * Math.pow(Math.sqrt(Math.pow(initialVelocityFieldRelative.getX(), 2) + Math.pow(initialVelocityUp, 2)), 2) * Math.pow(Math.cos(Math.atan(initialVelocityUp / initialVelocityFieldRelative.getX())), 2));
@@ -90,18 +97,18 @@ public class VisionUtils {
       double discriminantX = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getX(), 2) - 4 * -ax * (h - th));
       double discriminantY = Math.sqrt(Math.pow(initialVelocityUp / initialVelocityFieldRelative.getY(), 2) - 4 * -ay * (h - th));
 
-      // Where is the speaker (bounds in meters)
+      // Where is the speaker (bounds in meters) (relative to the robot)
       // Only works for red alliance rn
-      // double minX = targetPose.getX() - robotPose.getX() - 0.2;
-      // double maxX = targetPose.getX() - robotPose.getX() + 0.05;
-      // double minY = targetPose.getY() - robotPose.getY() - 0.5;
-      // double maxY = targetPose.getY() - robotPose.getY() + 0.5;
+      double minX = targetPose.getX() - robotPose.getX() - 0.35;
+      double maxX = targetPose.getX() - robotPose.getX() - 0.1;
+      double minY = targetPose.getY() - robotPose.getY() - 0.5;
+      double maxY = targetPose.getY() - robotPose.getY() + 0.5;
 
-      // Where is (0, 0) on the floor
-      double minX = -robotPose.getX() - 0.2;
-      double maxX = -robotPose.getX() + 0.2;
-      double minY = -robotPose.getY() - 0.2;
-      double maxY = -robotPose.getY() + 0.2;
+      // Where is (0, 0) on the floor (relative to the robot)
+      // double minX = -robotPose.getX() - 0.2;
+      // double maxX = -robotPose.getX() + 0.2;
+      // double minY = -robotPose.getY() - 0.2;
+      // double maxY = -robotPose.getY() + 0.2;
 
       // check if there are possible solutions
       // Recall for parabolas:
@@ -119,14 +126,14 @@ public class VisionUtils {
         double yval;
 
         // all this logic to take the closest to 0 out of x and y values
-        if (initialVelocityFieldRelative.getX() < 0) {
+        if (initialVelocityFieldRelative.getX() > 0) {
           xval = xval1 > xval2 ? xval2 : xval1;
         }
         else {
           xval = xval1 > xval2 ? xval1 : xval2;
         }
 
-        if (initialVelocityFieldRelative.getY() < 0) {
+        if (initialVelocityFieldRelative.getY() > 0) {
           yval = yval1 > yval2 ? yval2 : yval1;
         }
         else {
@@ -255,7 +262,7 @@ public class VisionUtils {
         // Robot heading
         Rotation2d robotRotation = robotPose.getRotation();
         // Commanded rotation
-        double rotCommand = tagRotation.minus(robotRotation).getDegrees();
+        double rotCommand = tagRotation.minus(robotRotation).getDegrees() * 0.2;
 
         // -- cap the values -- //
 
@@ -323,7 +330,7 @@ public class VisionUtils {
         Rotation2d errorRot = Rotation2d.fromRadians(-Math.atan2(targetPose.getX() - robotPose.getX(), targetPose.getY() - robotPose.getY())).minus(Rotation2d.fromDegrees(90));
         Rotation2d command = errorRot.minus(robotPose.getRotation());
         // Commanded rotation based on the tag angle
-        double rotCommand = command.getDegrees() * 0.2f;
+        double rotCommand = command.getDegrees() * 0.2;
   
         // -- cap the values -- //
 

@@ -39,11 +39,11 @@ public class AlignWithAmpCommand extends Command {
     @Override
     public void execute() {
         startPosition = driveSubsystem.getPose();
-        endPosition = driveSubsystem.speakerTargetPose;
+        endPosition = driveSubsystem.ampTargetPose;
 
         Transform2d driveVector = new Transform2d(0, 0, new Rotation2d());
-        if (VisionUtils.alignWithTagExact(startPosition, endPosition, endPositionOffset) != null) {
-            driveVector = VisionUtils.alignWithTagExact(startPosition, endPosition, endPositionOffset);
+        if (VisionUtils.alignWithTagExact(endPosition, startPosition, endPositionOffset) != null) {
+            driveVector = VisionUtils.alignWithTagExact(endPosition, startPosition, endPositionOffset);
         }
 
         driveSubsystem.drive(driveVector.getX(), driveVector.getY(), driveVector.getRotation().getDegrees(), true, true);
@@ -58,6 +58,6 @@ public class AlignWithAmpCommand extends Command {
     // Returns true when the command should end.
     @Override
     public boolean isFinished() {
-        return VisionUtils.alignWithTagExact(startPosition, endPosition, endPositionOffset) == null || driveSubsystem.getDriveMode() != DriveModes.AMPALIGN;
+        return VisionUtils.alignWithTagExact(endPosition, startPosition, endPositionOffset) == null || driveSubsystem.getDriveMode() != DriveModes.AMPALIGN;
     }
 }

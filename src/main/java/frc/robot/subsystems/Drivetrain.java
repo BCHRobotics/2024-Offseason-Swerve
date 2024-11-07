@@ -119,19 +119,14 @@ public class Drivetrain extends SubsystemBase {
   @Override
   public void periodic() {
     // temporary code for storing trajectory predictions to be used by commands
-    // if (speakerTargetPose != null) {
-    //   boolean shotPred = VisionUtils.isReadyToShoot(4, 0.546, 1, this.m_odometry.getPoseMeters().getRotation().minus(Rotation2d.fromDegrees(180)).getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
-    //   Mechanism.getInstance().shotLights(shotPred);
-    //   onTarget = shotPred;
-    // }
-    // else {
-    //   onTarget = false;
-    // }
-
-    boolean shotPred = VisionUtils.isReadyToShoot(6.6, 0.5, 0.95, this.m_odometry.getPoseMeters().getRotation().getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
-    Mechanism.getInstance().shotLights(shotPred);
-    onTarget = shotPred;
-    SmartDashboard.putBoolean("TARGET AQUIRED", onTarget);
+    if (speakerTargetPose != null) {
+      boolean shotPred = VisionUtils.isReadyToShoot(6.95, 0.5, 0.95, this.m_odometry.getPoseMeters().getRotation().getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
+      Mechanism.getInstance().shotLights(shotPred);
+      onTarget = shotPred;
+    }
+    else {
+      onTarget = false;
+    }
 
     // Refresh the data gathered by the camera
     m_noteCamera.refreshResult();
@@ -501,6 +496,8 @@ public class Drivetrain extends SubsystemBase {
 
       // SmartDashboard.putNumber("Target Rotation", speakerTargetPose.getRotation().getDegrees());
     }
+
+    SmartDashboard.putNumber("TEST", getChassisSpeeds().vxMetersPerSecond);
 
     // Do the cameras have targets?
     SmartDashboard.putBoolean("Note Cam", m_noteCamera.getResult().hasTargets());

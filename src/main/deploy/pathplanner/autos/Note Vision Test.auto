@@ -1,0 +1,37 @@
+{
+  "version": 1.0,
+  "startingPose": {
+    "position": {
+      "x": 1.3473171105886368,
+      "y": 5.55472336015897
+    },
+    "rotation": 0
+  },
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "named",
+          "data": {
+            "name": "CANCEL ALIGN"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Note Vision Test"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "CANCEL ALIGN"
+          }
+        }
+      ]
+    }
+  },
+  "folder": null,
+  "choreoAuto": false
+}
