@@ -2,6 +2,19 @@
 
 2386 Swerve Drive Code. Offseason project (March 2024 - January 2025).
 
+This code is written solely for our 2024 FRC robot. 
+Attempting to run the code on any other robot will require modifications.
+
+## Project Goals
+
+- Building and running autonomous paths in realtime
+- Selecting and running autos based on an order of game pieces, not pre-built autos selected via drop-down
+- Refining note detection in auto, allowing the robot to smoothly adjust position to pick up notes
+- Refining tag detection in auto, allowing for smooth adjustment/scoring using apriltags
+- Trajectory prediction, allowing the robot to predict where a note will land once shot
+- Robot-aided shooting, allowing the robot to adjust position and score while moving
+- Managing all robot functions on one controller
+
 ## Getting Started
 
 ### Installation
