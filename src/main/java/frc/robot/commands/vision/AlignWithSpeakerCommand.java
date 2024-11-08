@@ -15,6 +15,7 @@ import frc.utils.VisionUtils;
  * Command that points towards the speaker and lines up with it, then shoots
  * Uses the radial vision profile to accomplish this
  */
+// WARNING - unfinished command
 public class AlignWithSpeakerCommand extends Command {
     public Drivetrain driveSubsystem;
 
@@ -28,7 +29,7 @@ public class AlignWithSpeakerCommand extends Command {
 
         // get the data needed to align with the speaker
         startPosition = driveSubsystem.getPose();
-        endPosition = driveSubsystem.speakerTargetPose;
+        endPosition = VisionUtils.getPose(CameraMode.SPEAKER, driveSubsystem.isRedAlliance);
         endPositionOffset = new Transform2d(CameraMode.SPEAKER.getOffsets()[0], CameraMode.SPEAKER.getOffsets()[1], new Rotation2d());
 
         addRequirements(driveSubsystem);
@@ -45,7 +46,7 @@ public class AlignWithSpeakerCommand extends Command {
     @Override
     public void execute() {
         startPosition = driveSubsystem.getPose();
-        endPosition = driveSubsystem.speakerTargetPose;
+        endPosition = VisionUtils.getPose(CameraMode.SPEAKER, driveSubsystem.isRedAlliance);
 
         Transform2d driveVector = new Transform2d(0, 0, new Rotation2d());
         if (VisionUtils.alignWithTagRadial(endPosition, startPosition, endPositionOffset.getX()) != null) {

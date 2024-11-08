@@ -79,11 +79,7 @@ public class Drivetrain extends SubsystemBase {
   private final Camera m_noteCamera = new Camera(VisionConstants.kNoteCameraName); // These names might need to be changed
   private final Camera m_tagCamera = new Camera(VisionConstants.kTagCameraName); // this too
 
-  // The stored field position of the target apriltag
-  public Pose2d ampTargetPose;
-  public Pose2d speakerTargetPose;
-
-  private boolean isRedAlliance;
+  public boolean isRedAlliance;
 
   private boolean isVisionAuto;
 
@@ -119,8 +115,11 @@ public class Drivetrain extends SubsystemBase {
   @Override
   public void periodic() {
     // temporary code for storing trajectory predictions to be used by commands
-    if (speakerTargetPose != null) {
-      boolean shotPred = VisionUtils.isReadyToShoot(6.95, 0.5, 0.95, this.m_odometry.getPoseMeters().getRotation().getDegrees(), speakerTargetPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
+    
+    // define speaker target pose
+    Pose2d speakerPose = VisionUtils.getPose(CameraMode.SPEAKER, isRedAlliance);
+    if (speakerPose != null) {
+      boolean shotPred = VisionUtils.isReadyToShoot(6.95, 0.5, 0.95, this.m_odometry.getPoseMeters().getRotation().getDegrees(), speakerPose, getPose(), getChassisSpeeds().vxMetersPerSecond, getChassisSpeeds().vyMetersPerSecond);
       Mechanism.getInstance().shotLights(shotPred);
       onTarget = shotPred;
     }
@@ -148,17 +147,41 @@ public class Drivetrain extends SubsystemBase {
     // Print debug values to smartDashboard
     this.printToDashboard();
 
-    // Update the amp target pose
-    int desiredTagId = isRedAlliance ? 5 : 6; // Which amp tag to target (blue or red)
-    if (m_tagCamera.hasTargetOfId(desiredTagId)) {
-      ampTargetPose = m_tagCamera.getApriltagPose(getPose(), this.m_odometry.getPoseMeters().getRotation().getDegrees(), desiredTagId, CameraMode.AMP.getHeading(isRedAlliance));
+    // ---- Updating Apriltag Positions ---- //
+    // Loop through all apriltag ids
+    for (int i = 0; i < VisionUtils.apriltagCount; i++) {
+      // Check to see if the current id is flagged
+      // This means we are keeping track of it
+      boolean isFlagged = false;
+      for (int j = 0; j < VisionUtils.flaggedTags.length; j++) {
+        if (VisionUtils.flaggedTags[j] == i) {
+          isFlagged = true;
+          break;
+        }
+      }
+
+      // If the current tag isn't flagged it's useless to us
+      // So skip to the next id
+      if (!isFlagged) { continue; }
+      // all code below THIS POINT will NOT RUN if the tag isn't flagged
+
+      if (m_tagCamera.hasTargetOfId(i)) {
+        VisionUtils.tagPositions[i] = m_tagCamera.getApriltagPose(getPose(), this.m_odometry.getPoseMeters().getRotation().getDegrees(), i, VisionUtils.getHeadingFromTagIndex(i, isRedAlliance));
+      }
     }
 
-    // Update the speaker target pose
-    desiredTagId = isRedAlliance ? 4 : 7; // Which speaker tag to target (blue or red)
-    if (m_tagCamera.hasTargetOfId(desiredTagId)) {
-      speakerTargetPose = m_tagCamera.getApriltagPose(getPose(), this.m_odometry.getPoseMeters().getRotation().getDegrees(), desiredTagId, CameraMode.SPEAKER.getHeading(isRedAlliance));
-    }
+    // TODO: THIS CODE WILL BE DELETED ONCE TESTED
+    // // Update the amp target pose
+    // int desiredTagId = isRedAlliance ? 5 : 6; // Which amp tag to target (blue or red)
+    // if (m_tagCamera.hasTargetOfId(desiredTagId)) {
+    //   ampTargetPose = m_tagCamera.getApriltagPose(getPose(), this.m_odometry.getPoseMeters().getRotation().getDegrees(), desiredTagId, CameraMode.AMP.getHeading(isRedAlliance));
+    // }
+
+    // // Update the speaker target pose
+    // desiredTagId = isRedAlliance ? 4 : 7; // Which speaker tag to target (blue or red)
+    // if (m_tagCamera.hasTargetOfId(desiredTagId)) {
+    //   speakerTargetPose = m_tagCamera.getApriltagPose(getPose(), this.m_odometry.getPoseMeters().getRotation().getDegrees(), desiredTagId, CameraMode.SPEAKER.getHeading(isRedAlliance));
+    // }
   }
 
   /**
@@ -479,17 +502,17 @@ public class Drivetrain extends SubsystemBase {
     // SmartDashboard.putString("Rear right Encoder", m_rearRight.getState().toString());
 
     // Apriltag target location/rotation for amp (field relative space)
-    if (ampTargetPose != null) {
-      // SmartDashboard.putNumber("Target X", ampTargetPose.getX());
-      // SmartDashboard.putNumber("Target Y", ampTargetPose.getY());
+    // if (ampTargetPose != null) {
+    //   SmartDashboard.putNumber("Target X", ampTargetPose.getX());
+    //   SmartDashboard.putNumber("Target Y", ampTargetPose.getY());
 
-      // SmartDashboard.putNumber("Target Rotation", ampTargetPose.getRotation().getDegrees());
-    }
+    //   SmartDashboard.putNumber("Target Rotation", ampTargetPose.getRotation().getDegrees());
+    // }
 
     // Apriltag target location/rotation for speaker (field relative space)
-    if (speakerTargetPose != null) {
-      double xDist = new Transform2d(getPose(), speakerTargetPose).getX();
-      double yDist = new Transform2d(getPose(), speakerTargetPose).getY();
+    if (VisionUtils.getPose(CameraMode.SPEAKER, isRedAlliance) != null) {
+      double xDist = new Transform2d(getPose(), VisionUtils.getPose(CameraMode.SPEAKER, isRedAlliance)).getX();
+      double yDist = new Transform2d(getPose(), VisionUtils.getPose(CameraMode.SPEAKER, isRedAlliance)).getY();
       SmartDashboard.putNumber("DIST", Math.sqrt(xDist * xDist + yDist * yDist));
       // SmartDashboard.putNumber("Target X", speakerTargetPose.getX());
       // SmartDashboard.putNumber("Target Y", speakerTargetPose.getY());

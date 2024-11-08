@@ -181,18 +181,25 @@ public final class Constants {
     // Camera modes, with their respective desired offsets
     // TODO: implement apriltag ids into this system
     public enum CameraMode {
-      NONE(new double[]{0, 0}, 0, 0), // values aren't used here
-      AMP(new double[]{0.61, 0}, -90, -90),
-      SPEAKER(new double[]{2.05, 0}, 0, 180);
+      // the first two variables are the offsets, the second two are the headings
+      // NOTE - the heading can be different for red and blue side, so two variables are available
+      // NOTE - these offsets are in local space, so the x coordinate is in the direction the target is facing
+      NONE(new double[]{0, 0}, 0, 0, 0, 0), // values aren't used here
+      AMP(new double[]{0.2, 0}, -90, -90, 5, 6),
+      SPEAKER(new double[]{2.05, 0}, 0, 180, 4, 7);
 
       private final double[] offsets;
       private final double redHeading;
       private final double blueHeading;
+      private final int redTagIndex;
+      private final int blueTagIndex;
 
-      CameraMode(double[] _offsets, double _blueHeading, double _redHeading) {
+      CameraMode(double[] _offsets, double _blueHeading, double _redHeading, int _redId, int _blueId) {
           this.offsets = _offsets;
           this.blueHeading = _blueHeading;
           this.redHeading = _redHeading;
+          this.redTagIndex = _redId;
+          this.blueTagIndex = _blueId;
       }
       
       /**
@@ -201,23 +208,6 @@ public final class Constants {
       public double[] getOffsets() {
           return this.offsets;
       }
-
-      /**
-       * Gets the blue heading of the camera mode
-       * @return the blue alliance heading
-       */
-      public double getBlueHeading() {
-        return this.blueHeading;
-      }
-
-      /**
-       * Gets the red heading of the camera mode
-       * @return the red alliance heading
-       */
-      public double getRedHeading() {
-        return this.redHeading;
-      }
-
       /**
        * A function that grabs either the red or blue heading depending on a boolean
        * @param isRed whether to get the red or blue heading
@@ -225,6 +215,14 @@ public final class Constants {
        */
       public double getHeading(boolean isRed) {
         return isRed ? this.redHeading : this.blueHeading;
+      }
+      /**
+       * A function that grabs either the red or blue apriltag index depending on a boolean
+       * @param isRed whether to get the red or blue apriltag index
+       * @return either the red or blue alliance apriltag index
+       */
+      public int getIndex(boolean isRed) {
+        return isRed ? this.redTagIndex : this.blueTagIndex;
       }
     }
 

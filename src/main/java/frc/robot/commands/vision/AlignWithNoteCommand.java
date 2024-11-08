@@ -8,7 +8,7 @@ import frc.robot.Constants.DriveConstants.DriveModes;
 import frc.robot.commands.TeleopDriveCommand;
 import frc.robot.subsystems.Drivetrain;
 
-// UNFINISHED
+// WARNING - unfinished command
 public class AlignWithNoteCommand extends Command {
     public Drivetrain driveSubsystem;
 

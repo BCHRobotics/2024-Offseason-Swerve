@@ -5,8 +5,6 @@ import org.photonvision.PhotonCamera;
 import org.photonvision.targeting.PhotonPipelineResult;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
-import edu.wpi.first.math.controller.PIDController;
-import frc.robot.Constants.VisionConstants;
 import frc.utils.VisionUtils;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -150,7 +148,7 @@ public class Camera extends PhotonCamera {
      */
     public Pose2d getApriltagPose(Pose2d robotPose, double robotHeading, int tagId, double tagHeading) {
         Transform2d robotToTag = getTargetTransform(robotHeading, tagId);
-
+        
         // Add the robot to tag offset to the robot pose to get the tag pose in field space
         Pose2d tagPose = new Pose2d(robotPose.getX() + 
         robotToTag.getX(), robotPose.getY() + 

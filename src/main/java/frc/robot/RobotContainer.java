@@ -12,14 +12,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.OIConstants;
 import frc.robot.Constants.ElevatorConstants.ElevatorPositions;
 import frc.robot.Constants.LEDConstants.LEDColor;
-import frc.robot.commands.HeadingLockDriveCommand;
 import frc.robot.commands.CombinedCommands;
 import frc.robot.commands.TeleopDriveCommand;
-import frc.robot.commands.vision.AlignWithSpeakerCommand;
 import frc.robot.commands.vision.AlignWithAmpCommand;
-import frc.robot.commands.vision.SpeakerTargetingCommand;
 import frc.robot.commands.mechanism.DirectSpeakerShoot;
-import frc.robot.Constants.DriveConstants.DriveModes;
 import frc.robot.subsystems.Drivetrain;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.Mechanism;
@@ -113,7 +109,8 @@ public class RobotContainer {
      * NOTE - Things are configured for the SHSM event, vision is (ofc) not being used for this
      */
     private void configureButtonBindingsDriver(boolean isRedAlliance) {
-        final double invert = isRedAlliance ? -1 : 1;
+        // variable is not needed rn
+        //final double invert = isRedAlliance ? -1 : 1;
 
         // NOTE FOR SLOW/FAST MODE COMMANDS
         // These commands don't have requirements else they interrupt the drive command (TeleopDriveCommand)
